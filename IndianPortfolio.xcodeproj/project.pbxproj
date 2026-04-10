@@ -34,6 +34,7 @@
 		AA000025 /* WatchListDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000025 /* WatchListDetailView.swift */; };
 		AA000026 /* WatchListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000026 /* WatchListView.swift */; };
 		AA000027 /* AddWatchListItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000027 /* AddWatchListItemView.swift */; };
+		AA000028 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000028 /* SignInView.swift */; };
 		BA000001 /* PortfolioWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000001 /* PortfolioWidget.swift */; };
 		BA000002 /* PortfolioTimelineProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000002 /* PortfolioTimelineProvider.swift */; };
 		BA000003 /* PortfolioWidgetViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000003 /* PortfolioWidgetViews.swift */; };
@@ -96,6 +97,7 @@
 		AB000025 /* WatchListDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchListDetailView.swift; sourceTree = "<group>"; };
 		AB000026 /* WatchListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchListView.swift; sourceTree = "<group>"; };
 		AB000027 /* AddWatchListItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddWatchListItemView.swift; sourceTree = "<group>"; };
+		AB000028 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
 		BB000001 /* PortfolioWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioWidget.swift; sourceTree = "<group>"; };
 		BB000002 /* PortfolioTimelineProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioTimelineProvider.swift; sourceTree = "<group>"; };
 		BB000003 /* PortfolioWidgetViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioWidgetViews.swift; sourceTree = "<group>"; };
@@ -192,6 +194,7 @@
 				AB000025 /* WatchListDetailView.swift */,
 				AB000026 /* WatchListView.swift */,
 				AB000027 /* AddWatchListItemView.swift */,
+				AB000028 /* SignInView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -360,6 +363,7 @@
 				AA000025 /* WatchListDetailView.swift in Sources */,
 				AA000026 /* WatchListView.swift in Sources */,
 				AA000027 /* AddWatchListItemView.swift in Sources */,
+				AA000028 /* SignInView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
