@@ -35,7 +35,7 @@ struct PortfolioView: View {
     private var iPadLayout: some View {
         NavigationSplitView {
             mainContent
-                .navigationTitle("ECM")
+                .navigationTitle("Portfolio")
                 .toolbar { toolbarItems }
         } detail: {
             if let holding = selectedHolding {
@@ -81,7 +81,7 @@ struct PortfolioView: View {
     private var iPhoneLayout: some View {
         NavigationStack {
             mainContent
-                .navigationTitle("ECM")
+                .navigationTitle("Portfolio")
                 .toolbar { toolbarItems }
                 .sheet(isPresented: $showingAddSheet) {
                     AddStockView()

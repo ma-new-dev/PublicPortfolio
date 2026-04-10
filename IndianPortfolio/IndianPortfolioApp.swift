@@ -55,6 +55,13 @@ struct IndianPortfolioApp: App {
     }
 
     private func checkExistingCredential() async {
+        #if targetEnvironment(simulator)
+        // Skip auth check in simulator for testing
+        isSignedIn = true
+        authChecked = true
+        return
+        #endif
+
         guard !appleUserID.isEmpty else {
             authChecked = true
             isSignedIn = false
