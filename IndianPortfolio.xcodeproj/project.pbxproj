@@ -1,0 +1,663 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		AA000001 /* IndianPortfolioApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001 /* IndianPortfolioApp.swift */; };
+		AA000002 /* StockHolding.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000002 /* StockHolding.swift */; };
+		AA000003 /* StockQuote.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000003 /* StockQuote.swift */; };
+		AA000004 /* StockPriceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000004 /* StockPriceService.swift */; };
+		AA000005 /* ExchangeRateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000005 /* ExchangeRateService.swift */; };
+		AA000006 /* MarketStatusService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000006 /* MarketStatusService.swift */; };
+		AA000007 /* PortfolioViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000007 /* PortfolioViewModel.swift */; };
+		AA000008 /* AddStockViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000008 /* AddStockViewModel.swift */; };
+		AA000009 /* PortfolioView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000009 /* PortfolioView.swift */; };
+		AA000010 /* AddStockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000010 /* AddStockView.swift */; };
+		AA000011 /* StockRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000011 /* StockRowView.swift */; };
+		AA000012 /* PortfolioSummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000012 /* PortfolioSummaryView.swift */; };
+		AA000013 /* PortfolioChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000013 /* PortfolioChartView.swift */; };
+		AA000014 /* CurrencyFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000014 /* CurrencyFormatter.swift */; };
+		AA000015 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000015 /* Constants.swift */; };
+		AA000016 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB000016 /* Assets.xcassets */; };
+		AA000017 /* StockDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000017 /* StockDetailView.swift */; };
+		AA000018 /* EditStockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000018 /* EditStockView.swift */; };
+		AA000019 /* StockDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000019 /* StockDetailViewModel.swift */; };
+		AA000020 /* IndexDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000020 /* IndexDetailView.swift */; };
+		AA000021 /* PortfolioDataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000021 /* PortfolioDataStore.swift */; };
+		AA000022 /* WatchListItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000022 /* WatchListItem.swift */; };
+		AA000023 /* WatchListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000023 /* WatchListViewModel.swift */; };
+		AA000024 /* WatchListRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000024 /* WatchListRowView.swift */; };
+		AA000025 /* WatchListDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000025 /* WatchListDetailView.swift */; };
+		AA000026 /* WatchListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000026 /* WatchListView.swift */; };
+		AA000027 /* AddWatchListItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000027 /* AddWatchListItemView.swift */; };
+		BA000001 /* PortfolioWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000001 /* PortfolioWidget.swift */; };
+		BA000002 /* PortfolioTimelineProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000002 /* PortfolioTimelineProvider.swift */; };
+		BA000003 /* PortfolioWidgetViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000003 /* PortfolioWidgetViews.swift */; };
+		BA000004 /* WidgetDataService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000004 /* WidgetDataService.swift */; };
+		BA000005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BB000005 /* Assets.xcassets */; };
+		BA000006 /* PortfolioDataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000021 /* PortfolioDataStore.swift */; };
+		BA000009 /* PortfolioWidgetExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = BB000006 /* PortfolioWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		BE000011 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AE000000 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BE000001;
+			remoteInfo = PortfolioWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		AE000004 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				BA000009 /* PortfolioWidgetExtension.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		AB000000 /* IndianPortfolio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = IndianPortfolio.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB000001 /* IndianPortfolioApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndianPortfolioApp.swift; sourceTree = "<group>"; };
+		AB000002 /* StockHolding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockHolding.swift; sourceTree = "<group>"; };
+		AB000003 /* StockQuote.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockQuote.swift; sourceTree = "<group>"; };
+		AB000004 /* StockPriceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockPriceService.swift; sourceTree = "<group>"; };
+		AB000005 /* ExchangeRateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExchangeRateService.swift; sourceTree = "<group>"; };
+		AB000006 /* MarketStatusService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketStatusService.swift; sourceTree = "<group>"; };
+		AB000007 /* PortfolioViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioViewModel.swift; sourceTree = "<group>"; };
+		AB000008 /* AddStockViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddStockViewModel.swift; sourceTree = "<group>"; };
+		AB000009 /* PortfolioView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioView.swift; sourceTree = "<group>"; };
+		AB000010 /* AddStockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddStockView.swift; sourceTree = "<group>"; };
+		AB000011 /* StockRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockRowView.swift; sourceTree = "<group>"; };
+		AB000012 /* PortfolioSummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioSummaryView.swift; sourceTree = "<group>"; };
+		AB000013 /* PortfolioChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioChartView.swift; sourceTree = "<group>"; };
+		AB000014 /* CurrencyFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyFormatter.swift; sourceTree = "<group>"; };
+		AB000015 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		AB000016 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AB000017 /* StockDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockDetailView.swift; sourceTree = "<group>"; };
+		AB000018 /* EditStockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditStockView.swift; sourceTree = "<group>"; };
+		AB000019 /* StockDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockDetailViewModel.swift; sourceTree = "<group>"; };
+		AB000020 /* IndexDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndexDetailView.swift; sourceTree = "<group>"; };
+		AB000021 /* PortfolioDataStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioDataStore.swift; sourceTree = "<group>"; };
+		AB000022 /* WatchListItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchListItem.swift; sourceTree = "<group>"; };
+		AB000023 /* WatchListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchListViewModel.swift; sourceTree = "<group>"; };
+		AB000024 /* WatchListRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchListRowView.swift; sourceTree = "<group>"; };
+		AB000025 /* WatchListDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchListDetailView.swift; sourceTree = "<group>"; };
+		AB000026 /* WatchListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchListView.swift; sourceTree = "<group>"; };
+		AB000027 /* AddWatchListItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddWatchListItemView.swift; sourceTree = "<group>"; };
+		BB000001 /* PortfolioWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioWidget.swift; sourceTree = "<group>"; };
+		BB000002 /* PortfolioTimelineProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioTimelineProvider.swift; sourceTree = "<group>"; };
+		BB000003 /* PortfolioWidgetViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioWidgetViews.swift; sourceTree = "<group>"; };
+		BB000004 /* WidgetDataService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetDataService.swift; sourceTree = "<group>"; };
+		BB000005 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		BB000006 /* PortfolioWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PortfolioWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		AC000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BC000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		AD000000 = {
+			isa = PBXGroup;
+			children = (
+				AD000001 /* IndianPortfolio */,
+				BD000001 /* PortfolioWidget */,
+				AD000099 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AD000001 /* IndianPortfolio */ = {
+			isa = PBXGroup;
+			children = (
+				AB000001 /* IndianPortfolioApp.swift */,
+				AD000002 /* Models */,
+				AD000003 /* Services */,
+				AD000004 /* ViewModels */,
+				AD000005 /* Views */,
+				AD000006 /* Utilities */,
+				BD000002 /* Shared */,
+				AB000016 /* Assets.xcassets */,
+			);
+			path = IndianPortfolio;
+			sourceTree = "<group>";
+		};
+		AD000002 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				AB000002 /* StockHolding.swift */,
+				AB000003 /* StockQuote.swift */,
+				AB000022 /* WatchListItem.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		AD000003 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				AB000004 /* StockPriceService.swift */,
+				AB000005 /* ExchangeRateService.swift */,
+				AB000006 /* MarketStatusService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		AD000004 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				AB000007 /* PortfolioViewModel.swift */,
+				AB000008 /* AddStockViewModel.swift */,
+				AB000019 /* StockDetailViewModel.swift */,
+				AB000023 /* WatchListViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		AD000005 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				AB000009 /* PortfolioView.swift */,
+				AB000010 /* AddStockView.swift */,
+				AB000011 /* StockRowView.swift */,
+				AB000012 /* PortfolioSummaryView.swift */,
+				AB000013 /* PortfolioChartView.swift */,
+				AB000017 /* StockDetailView.swift */,
+				AB000018 /* EditStockView.swift */,
+				AB000020 /* IndexDetailView.swift */,
+				AB000024 /* WatchListRowView.swift */,
+				AB000025 /* WatchListDetailView.swift */,
+				AB000026 /* WatchListView.swift */,
+				AB000027 /* AddWatchListItemView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		AD000006 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				AB000014 /* CurrencyFormatter.swift */,
+				AB000015 /* Constants.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		AD000099 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AB000000 /* IndianPortfolio.app */,
+				BB000006 /* PortfolioWidgetExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		BD000001 /* PortfolioWidget */ = {
+			isa = PBXGroup;
+			children = (
+				BB000001 /* PortfolioWidget.swift */,
+				BB000002 /* PortfolioTimelineProvider.swift */,
+				BB000003 /* PortfolioWidgetViews.swift */,
+				BB000004 /* WidgetDataService.swift */,
+				BB000005 /* Assets.xcassets */,
+			);
+			path = PortfolioWidget;
+			sourceTree = "<group>";
+		};
+		BD000002 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				AB000021 /* PortfolioDataStore.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		AE000001 /* IndianPortfolio */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AF000003 /* Build configuration list for PBXNativeTarget "IndianPortfolio" */;
+			buildPhases = (
+				AE000002 /* Sources */,
+				AC000001 /* Frameworks */,
+				AE000003 /* Resources */,
+				AE000004 /* Embed App Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BE000010 /* PBXTargetDependency */,
+			);
+			name = IndianPortfolio;
+			productName = IndianPortfolio;
+			productReference = AB000000 /* IndianPortfolio.app */;
+			productType = "com.apple.product-type.application";
+		};
+		BE000001 /* PortfolioWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BF000003 /* Build configuration list for PBXNativeTarget "PortfolioWidgetExtension" */;
+			buildPhases = (
+				BE000002 /* Sources */,
+				BC000001 /* Frameworks */,
+				BE000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PortfolioWidgetExtension;
+			productName = PortfolioWidgetExtension;
+			productReference = BB000006 /* PortfolioWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AE000000 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					AE000001 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+					BE000001 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = AF000001 /* Build configuration list for PBXProject "IndianPortfolio" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = AD000000;
+			productRefGroup = AD000099 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AE000001 /* IndianPortfolio */,
+				BE000001 /* PortfolioWidgetExtension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		AE000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA000016 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BE000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BA000005 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		AE000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA000001 /* IndianPortfolioApp.swift in Sources */,
+				AA000002 /* StockHolding.swift in Sources */,
+				AA000003 /* StockQuote.swift in Sources */,
+				AA000004 /* StockPriceService.swift in Sources */,
+				AA000005 /* ExchangeRateService.swift in Sources */,
+				AA000006 /* MarketStatusService.swift in Sources */,
+				AA000007 /* PortfolioViewModel.swift in Sources */,
+				AA000008 /* AddStockViewModel.swift in Sources */,
+				AA000009 /* PortfolioView.swift in Sources */,
+				AA000010 /* AddStockView.swift in Sources */,
+				AA000011 /* StockRowView.swift in Sources */,
+				AA000012 /* PortfolioSummaryView.swift in Sources */,
+				AA000013 /* PortfolioChartView.swift in Sources */,
+				AA000014 /* CurrencyFormatter.swift in Sources */,
+				AA000015 /* Constants.swift in Sources */,
+				AA000017 /* StockDetailView.swift in Sources */,
+				AA000018 /* EditStockView.swift in Sources */,
+				AA000019 /* StockDetailViewModel.swift in Sources */,
+				AA000020 /* IndexDetailView.swift in Sources */,
+				AA000021 /* PortfolioDataStore.swift in Sources */,
+				AA000022 /* WatchListItem.swift in Sources */,
+				AA000023 /* WatchListViewModel.swift in Sources */,
+				AA000024 /* WatchListRowView.swift in Sources */,
+				AA000025 /* WatchListDetailView.swift in Sources */,
+				AA000026 /* WatchListView.swift in Sources */,
+				AA000027 /* AddWatchListItemView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BE000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BA000001 /* PortfolioWidget.swift in Sources */,
+				BA000002 /* PortfolioTimelineProvider.swift in Sources */,
+				BA000003 /* PortfolioWidgetViews.swift in Sources */,
+				BA000004 /* WidgetDataService.swift in Sources */,
+				BA000006 /* PortfolioDataStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		BE000010 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BE000001 /* PortfolioWidgetExtension */;
+			targetProxy = BE000011 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		AF000010 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		AF000011 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		AF000020 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = IndianPortfolio/IndianPortfolio.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = 63PKY8VM9N;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = ECM;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.portfolio.IndianPortfolio;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SUPPORTS_MACCATALYST = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,6";
+			};
+			name = Debug;
+		};
+		AF000021 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = IndianPortfolio/IndianPortfolio.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = 63PKY8VM9N;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = ECM;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.portfolio.IndianPortfolio;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SUPPORTS_MACCATALYST = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,6";
+			};
+			name = Release;
+		};
+		BF000010 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = PortfolioWidget/PortfolioWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 63PKY8VM9N;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PortfolioWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "ECM Widget";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.portfolio.IndianPortfolio.PortfolioWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTS_MACCATALYST = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,6";
+			};
+			name = Debug;
+		};
+		BF000011 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = PortfolioWidget/PortfolioWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 63PKY8VM9N;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PortfolioWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "ECM Widget";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.portfolio.IndianPortfolio.PortfolioWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTS_MACCATALYST = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,6";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		AF000001 /* Build configuration list for PBXProject "IndianPortfolio" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AF000010 /* Debug */,
+				AF000011 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AF000003 /* Build configuration list for PBXNativeTarget "IndianPortfolio" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AF000020 /* Debug */,
+				AF000021 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BF000003 /* Build configuration list for PBXNativeTarget "PortfolioWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BF000010 /* Debug */,
+				BF000011 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = AE000000 /* Project object */;
+}
