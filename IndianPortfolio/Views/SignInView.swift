@@ -15,7 +15,7 @@ struct SignInView: View {
                     .font(.system(size: 72))
                     .foregroundStyle(.blue)
 
-                Text("ECM Portfolio")
+                Text("Simple Portfolio Tracker")
                     .font(.largeTitle)
                     .fontWeight(.bold)
 
