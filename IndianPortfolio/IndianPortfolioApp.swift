@@ -8,6 +8,7 @@ struct IndianPortfolioApp: App {
     @AppStorage("appleUserID") private var appleUserID: String = ""
     @State private var isSignedIn = false
     @State private var authChecked = false
+    @State private var selectedTab = 0
 
     init() {
         let schema = Schema([StockHolding.self, WatchListItem.self])
@@ -41,13 +42,15 @@ struct IndianPortfolioApp: App {
     }
 
     private var mainView: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             PortfolioView()
+                .tag(0)
                 .tabItem {
                     Label("Portfolio", systemImage: "briefcase.fill")
                 }
 
             WatchListView()
+                .tag(1)
                 .tabItem {
                     Label("Watch List", systemImage: "eye.fill")
                 }
