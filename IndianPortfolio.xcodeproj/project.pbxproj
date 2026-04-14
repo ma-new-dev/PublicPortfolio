@@ -23,6 +23,7 @@
 		AA000014 /* CurrencyFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000014 /* CurrencyFormatter.swift */; };
 		AA000015 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000015 /* Constants.swift */; };
 		AA000016 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB000016 /* Assets.xcassets */; };
+		AA000030 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = AB000030 /* PrivacyInfo.xcprivacy */; };
 		AA000017 /* StockDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000017 /* StockDetailView.swift */; };
 		AA000018 /* EditStockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000018 /* EditStockView.swift */; };
 		AA000019 /* StockDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000019 /* StockDetailViewModel.swift */; };
@@ -98,6 +99,7 @@
 		AB000026 /* WatchListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchListView.swift; sourceTree = "<group>"; };
 		AB000027 /* AddWatchListItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddWatchListItemView.swift; sourceTree = "<group>"; };
 		AB000028 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
+		AB000030 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = "text.xml"; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		BB000001 /* PortfolioWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioWidget.swift; sourceTree = "<group>"; };
 		BB000002 /* PortfolioTimelineProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioTimelineProvider.swift; sourceTree = "<group>"; };
 		BB000003 /* PortfolioWidgetViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioWidgetViews.swift; sourceTree = "<group>"; };
@@ -144,6 +146,7 @@
 				AD000006 /* Utilities */,
 				BD000002 /* Shared */,
 				AB000016 /* Assets.xcassets */,
+				AB000030 /* PrivacyInfo.xcprivacy */,
 			);
 			path = IndianPortfolio;
 			sourceTree = "<group>";
@@ -319,6 +322,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AA000016 /* Assets.xcassets in Resources */,
+				AA000030 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -520,6 +524,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Simple Portfolio Tracker";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Mukul Arora";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -554,6 +559,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Simple Portfolio Tracker";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Mukul Arora";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -578,6 +584,7 @@
 		BF000010 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = PortfolioWidget/PortfolioWidgetExtension.entitlements;
@@ -587,7 +594,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = PortfolioWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "ECM Widget";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Mukul Arora";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -607,6 +614,7 @@
 		BF000011 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = PortfolioWidget/PortfolioWidgetExtension.entitlements;
@@ -616,7 +624,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = PortfolioWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "ECM Widget";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Mukul Arora";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

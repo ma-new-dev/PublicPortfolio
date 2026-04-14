@@ -33,6 +33,11 @@ struct IndianPortfolioApp: App {
                     mainView
                 } else {
                     SignInView {
+                        // Signed in with Apple
+                        isSignedIn = true
+                    } onSkip: {
+                        // Guest mode — store sentinel so we don't show sign-in again
+                        UserDefaults.standard.set("guest", forKey: "appleUserID")
                         isSignedIn = true
                     }
                 }
@@ -59,11 +64,17 @@ struct IndianPortfolioApp: App {
 
     private func checkExistingCredential() async {
         #if targetEnvironment(simulator)
-        // Skip auth check in simulator for testing
         isSignedIn = true
         authChecked = true
         return
         #endif
+
+        // Guest users skip credential check
+        if appleUserID == "guest" {
+            isSignedIn = true
+            authChecked = true
+            return
+        }
 
         guard !appleUserID.isEmpty else {
             authChecked = true
@@ -71,7 +82,7 @@ struct IndianPortfolioApp: App {
             return
         }
 
-        // Verify the credential is still valid with Apple
+        // Verify the Apple ID credential is still valid
         let provider = ASAuthorizationAppleIDProvider()
         do {
             let state = try await provider.credentialState(forUserID: appleUserID)
