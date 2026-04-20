@@ -1,0 +1,56 @@
+# Xcode
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+build/
+DerivedData/
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+*.xccheckout
+*.xcscmblueprint
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Packages/
+Package.resolved
+
+# CocoaPods
+Pods/
+
+# Carthage
+Carthage/Build/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+
+# Archives & exports
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# App Store export options (contains team ID)
+ExportOptions*.plist
+
+# Environment / secrets
+*.p8
+*.p12
+*.mobileprovision
+AuthKey_*.p8
+
+# Google Drive conflict copies
+* 2.xcprivacy
+* 2.swift
