@@ -8,6 +8,9 @@ struct AccountSettingsView: View {
 
     @AppStorage("appleUserID") private var appleUserID: String = ""
 
+    @Query private var holdings: [StockHolding]
+    @Query private var watchListItems: [WatchListItem]
+
     @State private var showingDeleteConfirmation = false
     @State private var showingSignOutConfirmation = false
     @State private var isDeleting = false
@@ -37,6 +40,19 @@ struct AccountSettingsView: View {
                     .padding(.vertical, 4)
                 }
 
+                // MARK: - Delete Account  (placed prominently — second section)
+                Section {
+                    Button(role: .destructive) {
+                        showingDeleteConfirmation = true
+                    } label: {
+                        Label("Delete Account & All Data",
+                              systemImage: "person.crop.circle.badge.minus")
+                    }
+                } footer: {
+                    Text("Permanently deletes all portfolio holdings and watch list items from this device and iCloud. This action cannot be undone.")
+                        .font(.caption)
+                }
+
                 // MARK: - iCloud Data
                 Section("Data") {
                     Label {
@@ -59,16 +75,26 @@ struct AccountSettingsView: View {
                     }
                 }
 
-                // MARK: - Delete Account
+                // MARK: - iCloud Diagnostics
                 Section {
-                    Button(role: .destructive) {
-                        showingDeleteConfirmation = true
-                    } label: {
-                        Label("Delete Account & All Data",
-                              systemImage: "person.crop.circle.badge.minus")
+                    HStack {
+                        Label("Portfolio holdings", systemImage: "briefcase")
+                        Spacer()
+                        Text("\(holdings.count)")
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
                     }
+                    HStack {
+                        Label("Watch list items", systemImage: "eye")
+                        Spacer()
+                        Text("\(watchListItems.count)")
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+                } header: {
+                    Text("iCloud Diagnostics")
                 } footer: {
-                    Text("Permanently deletes all portfolio holdings and watch list items from this device and iCloud. This action cannot be undone.")
+                    Text("These counts reflect what is stored on this device. If they are 0 while other devices show data, iCloud sync is still in progress — wait a minute and reopen this screen.")
                         .font(.caption)
                 }
             }

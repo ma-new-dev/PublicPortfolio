@@ -67,6 +67,30 @@ actor StockPriceService {
         return try parseChartDataWithVolume(data: data)
     }
 
+    // MARK: - Fetch market cap via v7/finance/quote (chart API doesn't reliably return it for .NS/.BO)
+
+    func fetchMarketCap(for ticker: String) async -> Double? {
+        let encoded = ticker.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ticker
+        let urlString = "https://query1.finance.yahoo.com/v7/finance/quote?symbols=\(encoded)&fields=marketCap"
+        guard let url = URL(string: urlString) else { return nil }
+
+        var request = URLRequest(url: url)
+        request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
+
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else { return nil }
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let quoteResponse = json["quoteResponse"] as? [String: Any],
+              let results = quoteResponse["result"] as? [[String: Any]],
+              let first = results.first,
+              let cap = first["marketCap"] as? Double,
+              cap > 0 else { return nil }
+
+        return cap
+    }
+
     // MARK: - Symbol search
 
     func searchSymbols(query: String) async throws -> [SymbolSearchResult] {

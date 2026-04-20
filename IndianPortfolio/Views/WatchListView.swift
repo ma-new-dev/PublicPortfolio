@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import CoreData
 
 struct WatchListView: View {
     @Environment(\.modelContext) private var modelContext
@@ -9,6 +10,7 @@ struct WatchListView: View {
     @State private var viewModel = WatchListViewModel()
     @State private var showingAddSheet = false
     @State private var selectedItem: WatchListItem?
+    @State private var isSyncingFromCloud = false
 
     var body: some View {
         if horizontalSizeClass == .regular {
@@ -45,13 +47,18 @@ struct WatchListView: View {
                 .presentationDetents([.large])
         }
         .task { await viewModel.refreshAll(items: items) }
-        .onChange(of: items.count) { _, _ in
+        .onChange(of: items) { _, _ in
             Task { await viewModel.refreshAll(items: items) }
             viewModel.startAutoRefresh(items: items)
         }
         .onAppear { viewModel.startAutoRefresh(items: items) }
         .onDisappear { viewModel.stopAutoRefresh() }
         .refreshable { await viewModel.refreshAll(items: items) }
+        .onReceive(NotificationCenter.default.publisher(
+            for: NSPersistentCloudKitContainer.eventChangedNotification
+        )) { notification in
+            handleCloudKitEvent(notification)
+        }
     }
 
     // MARK: - iPhone Layout
@@ -66,13 +73,37 @@ struct WatchListView: View {
                         .presentationDetents([.large])
                 }
                 .task { await viewModel.refreshAll(items: items) }
-                .onChange(of: items.count) { _, _ in
+                .onChange(of: items) { _, _ in
                     Task { await viewModel.refreshAll(items: items) }
                     viewModel.startAutoRefresh(items: items)
                 }
                 .onAppear { viewModel.startAutoRefresh(items: items) }
                 .onDisappear { viewModel.stopAutoRefresh() }
                 .refreshable { await viewModel.refreshAll(items: items) }
+                .onReceive(NotificationCenter.default.publisher(
+                    for: NSPersistentCloudKitContainer.eventChangedNotification
+                )) { notification in
+                    handleCloudKitEvent(notification)
+                }
+        }
+    }
+
+    // MARK: - CloudKit sync
+
+    private func handleCloudKitEvent(_ notification: Notification) {
+        guard let event = notification.userInfo?[
+            NSPersistentCloudKitContainer.eventNotificationUserInfoKey
+        ] as? NSPersistentCloudKitContainer.Event else { return }
+
+        if event.type == .import {
+            if event.endDate == nil {
+                isSyncingFromCloud = true
+            } else {
+                isSyncingFromCloud = false
+                Task { await viewModel.refreshAll(items: items) }
+            }
+        } else if event.endDate != nil {
+            isSyncingFromCloud = false
         }
     }
 
