@@ -51,9 +51,11 @@ final class StockDetailViewModel {
             errorMessage = error.localizedDescription
         }
 
-        // Fetch quote to get market cap (separate call so chart failure doesn't block it)
-        if let quote = try? await priceService.fetchQuote(for: ticker) {
-            marketCap = quote.marketCap
+        // Fetch market cap — try chart quote first, fall back to v7/quote API for Indian stocks
+        if let quote = try? await priceService.fetchQuote(for: ticker), let cap = quote.marketCap, cap > 0 {
+            marketCap = cap
+        } else {
+            marketCap = await priceService.fetchMarketCap(for: ticker)
         }
 
         isLoading = false

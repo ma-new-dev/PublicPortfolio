@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import CoreData
 
 struct PortfolioView: View {
     @Environment(\.modelContext) private var modelContext
@@ -10,6 +11,7 @@ struct PortfolioView: View {
     @State private var showingAccountSettings = false
     @State private var selectedHolding: StockHolding?
     @State private var isEditing = false
+    @State private var isSyncingFromCloud = false
 
     /// Deduplicated holdings — keeps only the first (newest) entry per ticker
     private var uniqueHoldings: [StockHolding] {
@@ -64,7 +66,7 @@ struct PortfolioView: View {
             removeDuplicates()
             await viewModel.refreshAll(holdings: uniqueHoldings)
         }
-        .onChange(of: holdings.count) { _, _ in
+        .onChange(of: holdings) { _, _ in
             removeDuplicates()
             Task { await viewModel.refreshAll(holdings: uniqueHoldings) }
             viewModel.startAutoRefresh(holdings: uniqueHoldings)
@@ -77,6 +79,11 @@ struct PortfolioView: View {
         }
         .refreshable {
             await viewModel.refreshAll(holdings: uniqueHoldings)
+        }
+        .onReceive(NotificationCenter.default.publisher(
+            for: NSPersistentCloudKitContainer.eventChangedNotification
+        )) { notification in
+            handleCloudKitEvent(notification)
         }
     }
 
@@ -98,7 +105,7 @@ struct PortfolioView: View {
                     removeDuplicates()
                     await viewModel.refreshAll(holdings: uniqueHoldings)
                 }
-                .onChange(of: holdings.count) { _, _ in
+                .onChange(of: holdings) { _, _ in
                     removeDuplicates()
                     Task { await viewModel.refreshAll(holdings: uniqueHoldings) }
                     viewModel.startAutoRefresh(holdings: uniqueHoldings)
@@ -111,6 +118,11 @@ struct PortfolioView: View {
                 }
                 .refreshable {
                     await viewModel.refreshAll(holdings: uniqueHoldings)
+                }
+                .onReceive(NotificationCenter.default.publisher(
+                    for: NSPersistentCloudKitContainer.eventChangedNotification
+                )) { notification in
+                    handleCloudKitEvent(notification)
                 }
         }
     }
@@ -225,12 +237,20 @@ struct PortfolioView: View {
 
     private var marketStatusBar: some View {
         HStack {
-            Circle()
-                .fill(viewModel.isMarketOpen ? .green : .red)
-                .frame(width: 8, height: 8)
-            Text(MarketStatusService.marketStatusText)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            if isSyncingFromCloud {
+                ProgressView()
+                    .controlSize(.mini)
+                Text("Syncing from iCloud…")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                Circle()
+                    .fill(viewModel.isMarketOpen ? .green : .red)
+                    .frame(width: 8, height: 8)
+                Text(MarketStatusService.marketStatusText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
             Spacer()
 
@@ -398,6 +418,30 @@ struct PortfolioView: View {
     }
 
     // MARK: - Helpers
+
+    /// Handle a CloudKit sync event — shows a spinner while importing and
+    /// triggers a dedup + refresh pass once the import finishes.
+    private func handleCloudKitEvent(_ notification: Notification) {
+        guard let event = notification.userInfo?[
+            NSPersistentCloudKitContainer.eventNotificationUserInfoKey
+        ] as? NSPersistentCloudKitContainer.Event else { return }
+
+        if event.type == .import {
+            if event.endDate == nil {
+                // Import in progress
+                isSyncingFromCloud = true
+            } else {
+                // Import finished
+                isSyncingFromCloud = false
+                Task { @MainActor in
+                    removeDuplicates()
+                    await viewModel.refreshAll(holdings: uniqueHoldings)
+                }
+            }
+        } else if event.endDate != nil {
+            isSyncingFromCloud = false
+        }
+    }
 
     /// Delete a holding and all its duplicates (same ticker)
     private func deleteHolding(_ holding: StockHolding) {
