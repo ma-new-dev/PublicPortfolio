@@ -175,8 +175,14 @@ struct PortfolioView: View {
                 Button {
                     showingAccountSettings = true
                 } label: {
-                    Image(systemName: "person.circle")
+                    HStack(spacing: 4) {
+                        Image(systemName: "person.crop.circle")
+                        Text("Account")
+                            .font(.subheadline)
+                    }
                 }
+                .accessibilityLabel("Account & Data")
+                .accessibilityHint("Manage account, sign out, or delete your account and data")
             }
         }
     }

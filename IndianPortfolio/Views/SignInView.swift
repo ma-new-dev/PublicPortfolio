@@ -52,7 +52,7 @@ struct SignInView: View {
                 .cornerRadius(10)
                 .padding(.horizontal)
 
-                // Guest / skip option — required by App Store guideline 5.1.1(v)
+                // Guest / skip button
                 Button {
                     onSkip()
                 } label: {
@@ -61,12 +61,6 @@ struct SignInView: View {
                         .foregroundStyle(.secondary)
                         .padding(.vertical, 8)
                 }
-
-                Text("Sign in with Apple enables iCloud sync across your devices.")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
             }
             .padding(.bottom, 40)
         }

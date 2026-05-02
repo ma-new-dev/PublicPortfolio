@@ -65,36 +65,47 @@ struct AddStockView: View {
                 Spacer()
                 ProgressView("Searching...")
                 Spacer()
-            } else if viewModel.searchResults.isEmpty && viewModel.searchText.count >= 2 {
+            } else if viewModel.showsNoResultsState {
                 Spacer()
                 ContentUnavailableView(
-                    "No Results",
+                    "No Indian Stocks Found",
                     systemImage: "magnifyingglass",
-                    description: Text("No Indian stocks found for \"\(viewModel.searchText)\"")
+                    description: Text("No NSE/BSE matches for \"\(viewModel.searchText)\".\nTry: Reliance, TCS, Infosys, HDFC, ITC")
                 )
                 Spacer()
             } else {
-                List(viewModel.searchResults) { result in
-                    Button {
-                        viewModel.selectedResult = result
-                    } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(result.name)
-                                .font(.headline)
-                                .foregroundStyle(.primary)
-                            HStack {
-                                Text(result.symbol)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Spacer()
-                                Text(result.exchange)
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                                    .foregroundStyle(.blue)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 2)
-                                    .background(Color.blue.opacity(0.1))
-                                    .clipShape(Capsule())
+                List {
+                    if viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines).count < 2 {
+                        Section {
+                            EmptyView()
+                        } header: {
+                            Text("Popular Indian Stocks")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    ForEach(viewModel.displayResults) { result in
+                        Button {
+                            viewModel.selectedResult = result
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(result.name)
+                                    .font(.headline)
+                                    .foregroundStyle(.primary)
+                                HStack {
+                                    Text(result.symbol)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    Spacer()
+                                    Text(result.exchange)
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                        .foregroundStyle(.blue)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 2)
+                                        .background(Color.blue.opacity(0.1))
+                                        .clipShape(Capsule())
+                                }
                             }
                         }
                     }
