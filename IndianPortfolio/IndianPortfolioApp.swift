@@ -63,6 +63,14 @@ struct IndianPortfolioApp: App {
                 .tabItem {
                     Label("Watch List", systemImage: "eye.fill")
                 }
+
+            // Account tab — guarantees the Delete Account flow is reachable
+            // from a permanent, always-visible bottom-bar item (Apple guideline 5.1.1(v)).
+            AccountSettingsView(isPresentedAsSheet: false)
+                .tag(2)
+                .tabItem {
+                    Label("Account", systemImage: "person.crop.circle")
+                }
         }
     }
 

@@ -9,6 +9,7 @@ struct WatchListView: View {
 
     @State private var viewModel = WatchListViewModel()
     @State private var showingAddSheet = false
+    @State private var showingAccountSettings = false
     @State private var selectedItem: WatchListItem?
     @State private var isSyncingFromCloud = false
 
@@ -27,6 +28,9 @@ struct WatchListView: View {
             mainContent
                 .navigationTitle("Watch List")
                 .toolbar { toolbarItems }
+                .sheet(isPresented: $showingAccountSettings) {
+                    AccountSettingsView()
+                }
         } detail: {
             if let item = selectedItem {
                 WatchListDetailView(
@@ -68,6 +72,9 @@ struct WatchListView: View {
             mainContent
                 .navigationTitle("Watch List")
                 .toolbar { toolbarItems }
+                .sheet(isPresented: $showingAccountSettings) {
+                    AccountSettingsView()
+                }
                 .sheet(isPresented: $showingAddSheet) {
                     AddWatchListItemView(existingTickers: Set(items.map(\.ticker)))
                         .presentationDetents([.large])
@@ -138,6 +145,11 @@ struct WatchListView: View {
                     showingAddSheet = true
                 } label: {
                     Image(systemName: "plus")
+                }
+                Button {
+                    showingAccountSettings = true
+                } label: {
+                    Image(systemName: "person.circle")
                 }
             }
         }

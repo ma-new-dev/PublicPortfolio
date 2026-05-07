@@ -15,6 +15,10 @@ struct AccountSettingsView: View {
     @State private var showingSignOutConfirmation = false
     @State private var isDeleting = false
 
+    /// When true, this view is presented as a sheet and shows a "Done" button.
+    /// When false (e.g. inside a TabView), no Done button — the tab bar handles navigation.
+    var isPresentedAsSheet: Bool = true
+
     private var isGuest: Bool { appleUserID == "guest" }
 
     var body: some View {
@@ -101,8 +105,10 @@ struct AccountSettingsView: View {
             .navigationTitle("Account")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
+                if isPresentedAsSheet {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Done") { dismiss() }
+                    }
                 }
             }
             // Sign Out confirmation
