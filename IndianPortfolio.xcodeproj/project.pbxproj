@@ -528,7 +528,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Simple Portfolio Tracker";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Mukul Arora";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 MA";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -563,7 +563,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Simple Portfolio Tracker";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Mukul Arora";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 MA";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -598,7 +598,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = PortfolioWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "ECM Widget";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Mukul Arora";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 MA";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -628,7 +628,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = PortfolioWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "ECM Widget";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Mukul Arora";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 MA";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
