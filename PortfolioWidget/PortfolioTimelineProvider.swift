@@ -73,7 +73,8 @@ struct PortfolioTimelineProvider: TimelineProvider {
         Task {
             let entry = await fetchEntry()
             let isMarketOpen = WidgetMarketStatus.isMarketOpen
-            let refreshInterval: TimeInterval = isMarketOpen ? 60 : 900
+            // WidgetKit budgets reloads (~40–70/day); asking for more just gets throttled.
+            let refreshInterval: TimeInterval = isMarketOpen ? 600 : 3600
             let nextUpdate = Date().addingTimeInterval(refreshInterval)
             let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
             completion(timeline)
@@ -88,8 +89,10 @@ struct PortfolioTimelineProvider: TimelineProvider {
 
         guard !sharedHoldings.isEmpty else {
             // No holdings — still fetch indices
-            let indices = await WidgetDataService.fetchIndices()
-            let rate = await WidgetDataService.fetchExchangeRate()
+            async let indicesResult = WidgetDataService.fetchIndices()
+            async let rateResult = WidgetDataService.fetchExchangeRate()
+            let indices = await indicesResult
+            let rate = await rateResult
             return PortfolioEntry(
                 date: Date(),
                 totalValueINR: 0,
@@ -152,9 +155,8 @@ struct PortfolioTimelineProvider: TimelineProvider {
 
 enum WidgetMarketStatus {
     static var isMarketOpen: Bool {
-        let tz = TimeZone(identifier: "Asia/Kolkata")!
         var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = tz
+        calendar.timeZone = MarketDataClient.indiaTimeZone
         let now = Date()
         let weekday = calendar.component(.weekday, from: now)
         guard weekday >= 2 && weekday <= 6 else { return false }

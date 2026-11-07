@@ -7,6 +7,7 @@ struct StockQuote: Identifiable {
     let change: Double
     let changePercent: Double
     let marketCap: Double?
+    /// Exchange time of the latest trade (falls back to fetch time).
     let lastUpdated: Date
 
     var isPositive: Bool { change >= 0 }
@@ -27,6 +28,8 @@ struct VolumeDataPoint: Identifiable {
 struct ChartDataResult {
     let pricePoints: [IntradayDataPoint]
     let volumePoints: [VolumeDataPoint]
+    /// Close just before the range starts — the baseline for "change over range".
+    let previousClose: Double?
 }
 
 enum ChartTimeRange: String, CaseIterable, Identifiable {

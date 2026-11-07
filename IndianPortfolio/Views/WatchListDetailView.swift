@@ -9,21 +9,31 @@ struct WatchListDetailView: View {
     let item: WatchListItem
     let quote: StockQuote?
     let exchangeRate: Double
+    var onDelete: (() -> Void)? = nil
 
     @State private var viewModel = StockDetailViewModel()
     @State private var showingDeleteConfirmation = false
 
+    private var currentQuote: StockQuote? { viewModel.liveQuote ?? quote }
+
     var body: some View {
-        ScrollView {
+        AdaptiveScrollView { isWide in
             VStack(spacing: 20) {
                 headerSection
-                timeRangePicker
-                priceChartSection
-                volumeChartSection
-                statsSection
-                removeButton
+
+                AdaptiveColumns(isWide: isWide) {
+                    RangePicker(selected: viewModel.selectedRange) { range in
+                        viewModel.changeRange(to: range, ticker: item.ticker)
+                    }
+                    PriceChartCard(viewModel: viewModel, height: isWide ? 320 : 220)
+                    if viewModel.hasVolume {
+                        VolumeChartCard(viewModel: viewModel, height: isWide ? 140 : 120)
+                    }
+                } secondary: {
+                    StatsCard(items: stats)
+                    removeButton
+                }
             }
-            .padding()
         }
         .navigationTitle(item.companyName)
         .navigationBarTitleDisplayMode(.inline)
@@ -33,14 +43,18 @@ struct WatchListDetailView: View {
             titleVisibility: .visible
         ) {
             Button("Remove", role: .destructive) {
-                modelContext.delete(item)
-                dismiss()
+                if let onDelete {
+                    onDelete()
+                } else {
+                    modelContext.delete(item)
+                    dismiss()
+                }
             }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This will remove \(item.companyName) from your Watch List.")
         }
-        .task {
+        .task(id: item.ticker) {
             await viewModel.fetchData(for: item.ticker)
         }
     }
@@ -53,256 +67,48 @@ struct WatchListDetailView: View {
                 Text(item.ticker)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
-
-                Text(item.exchange)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.blue)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 2)
-                    .background(Color.blue.opacity(0.1))
-                    .clipShape(Capsule())
-
+                ExchangeBadge(exchange: item.exchange)
                 Spacer()
             }
 
-            if let quote {
+            if let q = currentQuote {
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
-                    Text(CurrencyFormatter.formatINR(quote.currentPrice))
+                    Text(CurrencyFormatter.formatINR(q.currentPrice))
                         .font(.system(size: 34, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(CurrencyFormatter.formatChange(quote.change))
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(quote.isPositive ? .green : .red)
-
-                        Text(CurrencyFormatter.formatPercent(quote.changePercent))
-                            .font(.caption)
-                            .foregroundStyle(quote.isPositive ? .green : .red)
-                    }
+                    ChangeLabel(change: q.change, percent: q.changePercent)
 
                     Spacer()
+
+                    if let asOf = MarketStatusService.asOfText(q.lastUpdated) {
+                        Text(asOf)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
         }
-    }
-
-    // MARK: - Time Range Picker
-
-    private var timeRangePicker: some View {
-        HStack(spacing: 0) {
-            ForEach(ChartTimeRange.allCases) { range in
-                Button {
-                    viewModel.changeRange(to: range, ticker: item.ticker)
-                } label: {
-                    Text(range.rawValue)
-                        .font(.subheadline)
-                        .fontWeight(viewModel.selectedRange == range ? .bold : .regular)
-                        .foregroundStyle(viewModel.selectedRange == range ? .white : .primary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(viewModel.selectedRange == range ? Color.blue : Color.clear)
-                        )
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(4)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color(.systemGray6))
-        )
-    }
-
-    // MARK: - Price Chart
-
-    private var priceChartSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Price")
-                    .font(.headline)
-                Spacer()
-                if !viewModel.priceData.isEmpty {
-                    HStack(spacing: 4) {
-                        Image(systemName: viewModel.isPositive ? "arrow.up.right" : "arrow.down.right")
-                        Text(CurrencyFormatter.formatPercent(viewModel.priceChangePercent))
-                    }
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundStyle(viewModel.isPositive ? .green : .red)
-                }
-            }
-
-            if viewModel.isLoading {
-                ProgressView()
-                    .frame(height: 220)
-                    .frame(maxWidth: .infinity)
-            } else if viewModel.priceData.isEmpty {
-                ContentUnavailableView(
-                    "No Data",
-                    systemImage: "chart.line.downtrend.xyaxis",
-                    description: Text(viewModel.errorMessage ?? "Unable to load chart data")
-                )
-                .frame(height: 220)
-            } else {
-                Chart(viewModel.priceData) { point in
-                    LineMark(
-                        x: .value("Time", point.timestamp),
-                        y: .value("Price", point.price)
-                    )
-                    .foregroundStyle(viewModel.isPositive ? Color.green : Color.red)
-                    .interpolationMethod(.catmullRom)
-
-                    AreaMark(
-                        x: .value("Time", point.timestamp),
-                        y: .value("Price", point.price)
-                    )
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [
-                                (viewModel.isPositive ? Color.green : Color.red).opacity(0.3),
-                                (viewModel.isPositive ? Color.green : Color.red).opacity(0.02)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .interpolationMethod(.catmullRom)
-                }
-                .chartYScale(domain: chartYDomain)
-                .chartXAxis {
-                    AxisMarks { value in
-                        AxisValueLabel(format: viewModel.selectedRange.xAxisFormat)
-                        AxisGridLine()
-                    }
-                }
-                .chartYAxis {
-                    AxisMarks(position: .trailing) { value in
-                        AxisValueLabel {
-                            if let v = value.as(Double.self) {
-                                Text(CurrencyFormatter.formatINR(v))
-                                    .font(.caption2)
-                            }
-                        }
-                    }
-                }
-                .frame(height: 220)
-            }
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial)
-        )
-    }
-
-    private var chartYDomain: ClosedRange<Double> {
-        let prices = viewModel.priceData.map(\.price)
-        let min = (prices.min() ?? 0) * 0.998
-        let max = (prices.max() ?? 0) * 1.002
-        return min...max
-    }
-
-    // MARK: - Volume Chart
-
-    private var volumeChartSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Volume")
-                    .font(.headline)
-                Spacer()
-                if viewModel.totalVolume > 0 {
-                    Text(formatVolume(viewModel.totalVolume))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            if !viewModel.volumeData.isEmpty {
-                Chart(viewModel.volumeData) { point in
-                    BarMark(
-                        x: .value("Time", point.timestamp),
-                        y: .value("Volume", point.volume)
-                    )
-                    .foregroundStyle(Color.blue.opacity(0.6))
-                }
-                .chartXAxis {
-                    AxisMarks { value in
-                        AxisValueLabel(format: viewModel.selectedRange.xAxisFormat)
-                    }
-                }
-                .chartYAxis {
-                    AxisMarks(position: .trailing) { value in
-                        AxisValueLabel {
-                            if let v = value.as(Double.self) {
-                                Text(formatVolume(v))
-                                    .font(.caption2)
-                            }
-                        }
-                    }
-                }
-                .frame(height: 120)
-            } else if !viewModel.isLoading {
-                Text("No volume data available")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(height: 60)
-                    .frame(maxWidth: .infinity)
-            }
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial)
-        )
     }
 
     // MARK: - Stats
 
-    private var statsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Statistics")
-                .font(.headline)
-
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 12) {
-                statCard(title: "High", value: CurrencyFormatter.formatINR(viewModel.highPrice))
-                statCard(title: "Low", value: CurrencyFormatter.formatINR(viewModel.lowPrice))
-                statCard(title: "Prev Close", value: CurrencyFormatter.formatINR(quote?.previousClose ?? 0))
-                statCard(title: "Total Volume", value: formatVolume(viewModel.totalVolume))
-                if let marketCap = quote?.marketCap, marketCap > 0 {
-                    statCard(title: "Mkt Cap (INR)", value: CurrencyFormatter.formatINRCrore(marketCap))
-                    statCard(title: "Mkt Cap (USD)", value: CurrencyFormatter.formatUSDMillion(marketCap * exchangeRate))
-                }
+    private var stats: [StatItem] {
+        var items: [StatItem] = [
+            StatItem(title: "\(viewModel.selectedRange.rawValue) High", value: CurrencyFormatter.formatINR(viewModel.highPrice)),
+            StatItem(title: "\(viewModel.selectedRange.rawValue) Low", value: CurrencyFormatter.formatINR(viewModel.lowPrice)),
+            StatItem(title: "Prev Close", value: CurrencyFormatter.formatINR(currentQuote?.previousClose ?? 0)),
+            StatItem(title: "Volume", value: VolumeFormatter.format(viewModel.totalVolume)),
+        ]
+        if let cap = viewModel.marketCap ?? currentQuote?.marketCap, cap > 0 {
+            items.append(StatItem(title: "Mkt Cap (INR)", value: CurrencyFormatter.formatMarketCapINR(cap)))
+            if exchangeRate > 0 {
+                items.append(StatItem(title: "Mkt Cap (USD)", value: CurrencyFormatter.formatMarketCapUSD(cap * exchangeRate)))
             }
         }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial)
-        )
-    }
-
-    private func statCard(title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.subheadline)
-                .fontWeight(.semibold)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color(.systemGray6))
-        )
+        return items
     }
 
     // MARK: - Remove Button
@@ -311,31 +117,14 @@ struct WatchListDetailView: View {
         Button(role: .destructive) {
             showingDeleteConfirmation = true
         } label: {
-            HStack {
-                Image(systemName: "minus.circle")
-                Text("Remove from Watch List")
-            }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.red.opacity(0.1))
-            )
+            Label("Remove from Watch List", systemImage: "minus.circle")
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.red.opacity(0.1))
+                )
         }
         .foregroundStyle(.red)
-    }
-
-    // MARK: - Helpers
-
-    private func formatVolume(_ value: Double) -> String {
-        if value >= 10_000_000 {
-            return String(format: "%.1fCr", value / 10_000_000)
-        } else if value >= 100_000 {
-            return String(format: "%.1fL", value / 100_000)
-        } else if value >= 1_000 {
-            return String(format: "%.1fK", value / 1_000)
-        } else {
-            return String(format: "%.0f", value)
-        }
     }
 }

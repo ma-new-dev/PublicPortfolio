@@ -46,6 +46,16 @@ struct IndianPortfolioApp: App {
                 isSignedIn = false
                 authChecked = true
             }
+            // If the user revokes "Sign in with Apple" for this app in Settings,
+            // sign them out instead of continuing on a dead credential.
+            .onReceive(NotificationCenter.default.publisher(
+                for: ASAuthorizationAppleIDProvider.credentialRevokedNotification
+            )) { _ in
+                guard !appleUserID.isEmpty, appleUserID != "guest" else { return }
+                appleUserID = ""
+                isSignedIn = false
+                authChecked = true
+            }
         }
         .modelContainer(container)
     }

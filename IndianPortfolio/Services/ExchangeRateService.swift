@@ -1,38 +1,35 @@
 import Foundation
 
+/// INR→USD conversion with a short cache.
+///
+/// Uses the live USD/INR market quote (falls back to a daily reference feed).
+/// The last good rate is persisted to the shared App Group so the widget can
+/// use it if its own fetch fails, instead of showing $0.
 actor ExchangeRateService {
+    static let shared = ExchangeRateService()
+
     private var cachedRate: Double?
     private var lastFetchTime: Date?
 
-    func fetchINRToUSD() async throws -> Double {
-        // Return cached rate if less than 1 hour old
-        if let cached = cachedRate,
+    /// US dollars per rupee.
+    func fetchINRToUSD(forceRefresh: Bool = false) async throws -> Double {
+        if !forceRefresh,
+           let cached = cachedRate,
            let lastFetch = lastFetchTime,
            Date().timeIntervalSince(lastFetch) < AppConstants.exchangeRateCacheSeconds {
             return cached
         }
 
-        guard let url = URL(string: AppConstants.API.exchangeRateURL) else {
-            throw ServiceError.invalidURL
-        }
-
-        let (data, response) = try await URLSession.shared.data(from: url)
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            // Fall back to cached rate if available
+        do {
+            let rate = try await MarketDataClient.fetchUSDPerINR()
+            cachedRate = rate
+            lastFetchTime = Date()
+            PortfolioDataStore.saveExchangeRate(rate)
+            return rate
+        } catch {
             if let cached = cachedRate { return cached }
-            throw ServiceError.badResponse
+            if let stored = PortfolioDataStore.loadExchangeRate() { return stored.rate }
+            throw error
         }
-
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let rates = json["rates"] as? [String: Double],
-              let usdRate = rates["USD"]
-        else {
-            if let cached = cachedRate { return cached }
-            throw ServiceError.parseError
-        }
-
-        cachedRate = usdRate
-        lastFetchTime = Date()
-        return usdRate
     }
 }
