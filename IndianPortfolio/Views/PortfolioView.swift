@@ -4,14 +4,11 @@ import CoreData
 
 /// Portfolio screen.
 ///
-/// Layouts (chosen from the actual window size, so they follow the window, not the device):
-/// * **Wide window** (unfolded inner display in either orientation, iPad, Mac,
-///   large iPhones in landscape): split view: holdings sidebar + market
-///   overview / stock detail.
-/// * **Compact width, compact height** (iPhone or cover display in landscape):
-///   summary side panel + holdings list, so the list isn't squeezed.
-/// * **Compact width, regular height** (iPhone or cover display in portrait):
-///   classic stacked layout.
+/// Uses a plain `NavigationSplitView` and lets iOS decide how many columns to
+/// show (the same approach as MA Compass): two columns wherever the system
+/// considers the window wide (unfolded inner display, iPad, Mac, large iPhones
+/// in landscape), and a single collapsed stack on phone-width windows (cover
+/// display, regular iPhones) where tapping a row pushes the detail.
 struct PortfolioView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -30,19 +27,37 @@ struct PortfolioView: View {
         return holdings.filter { seen.insert($0.ticker).inserted }
     }
 
-    private var isCompactHeight: Bool { verticalSizeClass == .compact }
+    private var isRegularWidth: Bool { horizontalSizeClass == .regular }
+    /// Phone-width window in landscape (e.g. cover display turned sideways).
+    private var isPhoneLandscape: Bool { !isRegularWidth && verticalSizeClass == .compact }
 
     var body: some View {
-        GeometryReader { proxy in
-            if LayoutMetrics.useSplitLayout(size: proxy.size, horizontalSizeClass: horizontalSizeClass) {
-                // Force the split view to show both columns even when the
-                // system reports a compact size class (foldable inner screen).
-                splitLayout
-                    .environment(\.horizontalSizeClass, .regular)
-            } else {
-                stackLayout
+        NavigationSplitView {
+            sidebar
+                .navigationTitle("Portfolio")
+                .navigationBarTitleDisplayMode(isPhoneLandscape ? .inline : .automatic)
+                .toolbar { toolbarItems }
+                .navigationSplitViewColumnWidth(min: 320, ideal: 380, max: 460)
+        } detail: {
+            NavigationStack {
+                if let holding = selectedHolding {
+                    StockDetailView(
+                        holding: holding,
+                        quote: viewModel.quotes[holding.ticker],
+                        exchangeRate: viewModel.exchangeRate,
+                        onDelete: { deleteHolding(holding) }
+                    )
+                    .id(holding.id)
+                } else {
+                    MarketOverviewView(
+                        viewModel: viewModel,
+                        holdings: uniqueHoldings,
+                        onSelect: { selectedHolding = $0 }
+                    )
+                }
             }
         }
+        .navigationSplitViewStyle(.balanced)
         .sheet(isPresented: $showingAddSheet) {
             AddStockView()
                 .presentationDetents([.large])
@@ -76,74 +91,20 @@ struct PortfolioView: View {
         }
     }
 
-    // MARK: - Regular width: split view
+    // MARK: - Sidebar (also the whole screen on phone-width windows)
 
-    private var splitLayout: some View {
-        NavigationSplitView {
-            Group {
-                if uniqueHoldings.isEmpty {
-                    emptyState(showIndices: false)
-                } else {
-                    holdingsList(selectable: true)
-                }
-            }
-            .safeAreaInset(edge: .top, spacing: 0) { statusHeader }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                if !uniqueHoldings.isEmpty { portfolioFooter }
-            }
-            .navigationTitle("Portfolio")
-            .toolbar { toolbarItems }
-            .navigationSplitViewColumnWidth(min: 320, ideal: 380, max: 460)
-        } detail: {
-            NavigationStack {
-                if let holding = selectedHolding {
-                    StockDetailView(
-                        holding: holding,
-                        quote: viewModel.quotes[holding.ticker],
-                        exchangeRate: viewModel.exchangeRate,
-                        onDelete: { deleteHolding(holding) }
-                    )
-                    .id(holding.id)
-                } else {
-                    MarketOverviewView(
-                        viewModel: viewModel,
-                        holdings: uniqueHoldings,
-                        onSelect: { selectedHolding = $0 }
-                    )
-                }
-            }
-        }
-        .navigationSplitViewStyle(.balanced)
-    }
-
-    // MARK: - Compact width: navigation stack
-
-    private var stackLayout: some View {
-        NavigationStack {
-            Group {
-                if isCompactHeight {
-                    landscapeContent
-                } else {
-                    portraitContent
-                }
-            }
-            .navigationTitle("Portfolio")
-            .navigationBarTitleDisplayMode(isCompactHeight ? .inline : .automatic)
-            .toolbar { toolbarItems }
-        }
-    }
-
-    private var portraitContent: some View {
-        Group {
-            if uniqueHoldings.isEmpty {
-                emptyState(showIndices: true)
-            } else {
-                VStack(spacing: 0) {
-                    statusHeader
-                    indicesRow
-                    holdingsList(selectable: false)
-                    portfolioFooter
-                }
+    @ViewBuilder
+    private var sidebar: some View {
+        if uniqueHoldings.isEmpty {
+            emptyState(showIndices: true)
+        } else if isPhoneLandscape {
+            landscapeContent
+        } else {
+            VStack(spacing: 0) {
+                statusHeader
+                indicesRow
+                holdingsList
+                portfolioFooter
             }
         }
     }
@@ -156,14 +117,12 @@ struct PortfolioView: View {
                     ForEach(viewModel.indices) { index in
                         indexLink(index)
                     }
-                    if !uniqueHoldings.isEmpty {
-                        totalsView(large: false)
-                            .padding(12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color(.systemGray6))
-                            )
-                    }
+                    totalsView(large: false)
+                        .padding(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color(.systemGray6))
+                        )
                 }
                 .padding(12)
             }
@@ -172,11 +131,7 @@ struct PortfolioView: View {
 
             Divider()
 
-            if uniqueHoldings.isEmpty {
-                emptyState(showIndices: false)
-            } else {
-                holdingsList(selectable: false)
-            }
+            holdingsList
         }
     }
 
@@ -299,55 +254,29 @@ struct PortfolioView: View {
 
     // MARK: - Holdings list
 
-    private func holdingsList(selectable: Bool) -> some View {
-        List {
-            if selectable {
+    private var holdingsList: some View {
+        List(selection: $selectedHolding) {
+            if isRegularWidth {
                 Section {
                     Button {
                         selectedHolding = nil
                     } label: {
                         Label("Market Overview", systemImage: "chart.xyaxis.line")
                     }
-                    .listRowBackground(
-                        selectedHolding == nil ? Color.blue.opacity(0.12) : Color(.secondarySystemGroupedBackground)
-                    )
                 }
             }
 
             Section("Holdings (\(uniqueHoldings.count))") {
                 ForEach(viewModel.sortedHoldings(uniqueHoldings), id: \.id) { holding in
-                    Group {
-                        if selectable {
-                            Button {
-                                selectedHolding = holding
+                    row(for: holding)
+                        .tag(holding)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                deleteHolding(holding)
                             } label: {
-                                row(for: holding)
-                            }
-                            .buttonStyle(.plain)
-                            .listRowBackground(
-                                selectedHolding?.id == holding.id
-                                    ? Color.blue.opacity(0.12)
-                                    : Color(.secondarySystemGroupedBackground)
-                            )
-                        } else {
-                            NavigationLink {
-                                StockDetailView(
-                                    holding: holding,
-                                    quote: viewModel.quotes[holding.ticker],
-                                    exchangeRate: viewModel.exchangeRate
-                                )
-                            } label: {
-                                row(for: holding)
+                                Label("Delete", systemImage: "trash")
                             }
                         }
-                    }
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button(role: .destructive) {
-                            deleteHolding(holding)
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                    }
                 }
                 .onDelete { offsets in
                     let sorted = viewModel.sortedHoldings(uniqueHoldings)

@@ -335,27 +335,54 @@ actor YahooCrumbProvider {
 }
 
 extension MarketDataClient {
+    /// Market cap from Yahoo's v7 quote endpoint.
+    ///
+    /// 1. Plain request (no crumb), exactly as the app did before v1.1 — this is
+    ///    what worked on device.
+    /// 2. If Yahoo demands a crumb (401/403/empty), fetch one and retry.
     static func fetchMarketCap(_ symbol: String) async -> Double? {
-        guard isValidSymbol(symbol), let crumb = await YahooCrumbProvider.shared.currentCrumb() else {
-            return nil
+        guard isValidSymbol(symbol) else { return nil }
+
+        if let cap = await requestMarketCap(symbol, host: "query1.finance.yahoo.com", crumb: nil) {
+            return cap
         }
+        // The original v1.0 source: chart metadata of the 1-day/1-minute chart.
+        if let json = try? await fetchJSON({ chartURL(host: $0, symbol: symbol, range: "1d", interval: "1m") }),
+           let chart = json["chart"] as? [String: Any],
+           let result = (chart["result"] as? [[String: Any]])?.first,
+           let meta = result["meta"] as? [String: Any],
+           let cap = number(meta["marketCap"]), cap > 0 {
+            return cap
+        }
+        if let crumb = await YahooCrumbProvider.shared.currentCrumb() {
+            if let cap = await requestMarketCap(symbol, host: "query2.finance.yahoo.com", crumb: crumb) {
+                return cap
+            }
+            await YahooCrumbProvider.shared.invalidate()
+        }
+        return nil
+    }
+
+    private static func requestMarketCap(_ symbol: String, host: String, crumb: String?) async -> Double? {
         var components = URLComponents()
         components.scheme = "https"
-        components.host = "query2.finance.yahoo.com"
+        components.host = host
         components.path = "/v7/finance/quote"
-        components.queryItems = [
+        var items = [
             URLQueryItem(name: "symbols", value: symbol),
             URLQueryItem(name: "fields", value: "marketCap"),
-            URLQueryItem(name: "crumb", value: crumb),
         ]
+        if let crumb { items.append(URLQueryItem(name: "crumb", value: crumb)) }
+        components.queryItems = items
         guard let url = components.url else { return nil }
-        guard let (data, response) = try? await session.data(from: url),
-              let http = response as? HTTPURLResponse else { return nil }
-        if http.statusCode == 401 || http.statusCode == 403 {
-            await YahooCrumbProvider.shared.invalidate()
-            return nil
-        }
-        guard http.statusCode == 200,
+
+        var request = URLRequest(url: url)
+        // Same minimal UA the pre-1.1 app used successfully for this endpoint.
+        request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
+
+        guard let (data, response) = try? await session.data(for: request),
+              let http = response as? HTTPURLResponse,
+              http.statusCode == 200,
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let quoteResponse = json["quoteResponse"] as? [String: Any],
               let results = quoteResponse["result"] as? [[String: Any]],
