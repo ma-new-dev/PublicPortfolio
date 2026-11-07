@@ -5,53 +5,40 @@ struct WatchListRowView: View {
     let quote: StockQuote?
 
     var body: some View {
-        HStack(spacing: 12) {
-            // Left: Company info
-            VStack(alignment: .leading, spacing: 4) {
-                Text(item.companyName)
+        HStack(alignment: .center, spacing: 10) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(DisplayText.company(item.companyName))
                     .font(.headline)
-                    .lineLimit(1)
+                    .truncationMode(.tail)
 
-                HStack(spacing: 6) {
-                    Text(item.ticker)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    Text(item.exchange)
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.blue)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.blue.opacity(0.1))
-                        .clipShape(Capsule())
-                }
+                Text("\(DisplayText.symbol(item.ticker)) · \(item.exchange)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
+            .lineLimit(1)
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-            Spacer()
-
-            // Right: Price + day change
             if let quote {
-                VStack(alignment: .trailing, spacing: 4) {
+                VStack(alignment: .trailing, spacing: 3) {
                     Text(CurrencyFormatter.formatINR(quote.currentPrice))
                         .font(.headline)
 
-                    HStack(spacing: 4) {
+                    HStack(spacing: 6) {
                         Text(CurrencyFormatter.formatChange(quote.change))
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(quote.isPositive ? .green : .red)
-
                         Text(CurrencyFormatter.formatPercent(quote.changePercent))
-                            .font(.caption)
-                            .foregroundStyle(quote.isPositive ? .green : .red)
+                            .fontWeight(.semibold)
                     }
+                    .font(.caption)
+                    .foregroundStyle(quote.isPositive ? .green : .red)
                 }
+                .lineLimit(1)
+                .monospacedDigit()
+                .fixedSize()
             } else {
                 ProgressView()
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 2)
         .contentShape(Rectangle())
     }
 }

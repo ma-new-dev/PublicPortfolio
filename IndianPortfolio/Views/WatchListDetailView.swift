@@ -35,7 +35,7 @@ struct WatchListDetailView: View {
                 }
             }
         }
-        .navigationTitle(item.companyName)
+        .navigationTitle(DisplayText.company(item.companyName))
         .navigationBarTitleDisplayMode(.inline)
         .confirmationDialog(
             "Remove \(item.companyName)?",

@@ -2,28 +2,6 @@ import Foundation
 
 enum CurrencyFormatter {
 
-    private static let inrFormatter: NumberFormatter = {
-        let f = NumberFormatter()
-        f.numberStyle = .currency
-        f.currencyCode = "INR"
-        f.currencySymbol = "\u{20B9}"
-        f.maximumFractionDigits = 2
-        f.minimumFractionDigits = 2
-        f.locale = Locale(identifier: "en_IN")
-        return f
-    }()
-
-    private static let usdFormatter: NumberFormatter = {
-        let f = NumberFormatter()
-        f.numberStyle = .currency
-        f.currencyCode = "USD"
-        f.currencySymbol = "$"
-        f.maximumFractionDigits = 2
-        f.minimumFractionDigits = 2
-        f.locale = Locale(identifier: "en_US")
-        return f
-    }()
-
     private static let percentFormatter: NumberFormatter = {
         let f = NumberFormatter()
         f.numberStyle = .decimal
@@ -33,49 +11,62 @@ enum CurrencyFormatter {
         return f
     }()
 
-    private static let indexFormatter: NumberFormatter = {
+    private static func makeGroupedFormatter(decimals: Int) -> NumberFormatter {
         let f = NumberFormatter()
         f.numberStyle = .decimal
-        f.maximumFractionDigits = 2
-        f.minimumFractionDigits = 2
-        f.locale = Locale(identifier: "en_IN")
+        f.locale = Locale(identifier: "en_IN")   // Indian grouping: 1,23,456
+        f.minimumFractionDigits = decimals
+        f.maximumFractionDigits = decimals
         return f
-    }()
+    }
+    private static let grouped0 = makeGroupedFormatter(decimals: 0)
+    private static let grouped2 = makeGroupedFormatter(decimals: 2)
 
-    /// Format an index level with Indian digit grouping (e.g. 81,234.56)
+    private static func grouped(_ value: Double, decimals: Int) -> String {
+        let f = decimals == 0 ? grouped0 : grouped2
+        return f.string(from: NSNumber(value: value)) ?? String(format: "%.\(decimals)f", value)
+    }
+
+    /// Index level, no decimals (e.g. 81,234)
     static func formatIndex(_ value: Double) -> String {
-        indexFormatter.string(from: NSNumber(value: value)) ?? String(format: "%.2f", value)
+        grouped(value, decimals: 0)
     }
 
-    /// Format as plain INR (e.g. ₹2,450.50) — used for per-share prices
+    /// Share price. Whole rupees (e.g. ₹2,451); two decimals only for
+    /// sub-₹100 stocks, where paise are a meaningful share of the price.
     static func formatINR(_ value: Double) -> String {
-        inrFormatter.string(from: NSNumber(value: value)) ?? "\u{20B9}\(value)"
+        "\u{20B9}" + grouped(value, decimals: abs(value) < 100 ? 2 : 0)
     }
 
-    /// Format as INR Crore (e.g. ₹12.45 Cr) — used for holding/portfolio values
+    /// Holding / portfolio value in INR, kept short:
+    /// ₹1,234 Cr · ₹12.45 Cr · ₹45.6 L · ₹56,000
     static func formatINRCrore(_ value: Double) -> String {
         let crores = value / 10_000_000
-        if crores >= 1 {
+        let lakhs = value / 100_000
+        if abs(crores) >= 100 {
+            return "\u{20B9}" + grouped(crores, decimals: 0) + " Cr"
+        } else if abs(crores) >= 1 {
             return String(format: "\u{20B9}%.2f Cr", crores)
-        } else if crores >= 0.01 {
-            return String(format: "\u{20B9}%.4f Cr", crores)
+        } else if abs(lakhs) >= 1 {
+            return String(format: "\u{20B9}%.1f L", lakhs)
         } else {
-            // Below 1 lakh, just show plain INR
-            return formatINR(value)
+            return "\u{20B9}" + grouped(value, decimals: 0)
         }
     }
 
+    /// USD value, kept short: $1.23B · $123M · $5.80M · $456K · $780
     static func formatUSDMillion(_ value: Double) -> String {
-        let billions = value / 1_000_000_000
-        let millions = value / 1_000_000
-        if billions >= 1 {
-            return String(format: "$%.2fB", billions)
-        } else if millions >= 1 {
-            return String(format: "$%.2fM", millions)
-        } else if millions >= 0.001 {
-            return String(format: "$%.4fM", millions)
+        let a = abs(value)
+        if a >= 1_000_000_000 {
+            return String(format: "$%.2fB", value / 1_000_000_000)
+        } else if a >= 100_000_000 {
+            return String(format: "$%.0fM", value / 1_000_000)
+        } else if a >= 1_000_000 {
+            return String(format: "$%.2fM", value / 1_000_000)
+        } else if a >= 1_000 {
+            return String(format: "$%.0fK", value / 1_000)
         } else {
-            return String(format: "$%.2f", value)
+            return String(format: "$%.0f", value)
         }
     }
 
@@ -110,9 +101,11 @@ enum CurrencyFormatter {
         return "\(formatted)%"
     }
 
+    /// Signed price/index change; whole numbers once the move is ≥ 10.
     static func formatChange(_ value: Double) -> String {
-        let prefix = value >= 0 ? "+" : ""
-        return "\(prefix)\(String(format: "%.2f", value))"
+        let prefix = value >= 0 ? "+" : "-"
+        let decimals = abs(value) >= 10 ? 0 : 2
+        return prefix + grouped(abs(value), decimals: decimals)
     }
 
     /// Format share quantity in millions (e.g. "1.50M" for 1500000, "0.25M" for 250000)

@@ -272,28 +272,33 @@ struct LargeWidgetView: View {
 
 private func formatINRCrore(_ value: Double) -> String {
     let crores = value / 10_000_000
-    if crores >= 1 {
+    if crores >= 100 {
+        return String(format: "\u{20B9}%.0f Cr", crores)
+    } else if crores >= 1 {
         return String(format: "\u{20B9}%.2f Cr", crores)
-    } else if crores >= 0.01 {
-        return String(format: "\u{20B9}%.4f Cr", crores)
+    } else if value >= 100_000 {
+        return String(format: "\u{20B9}%.1f L", value / 100_000)
     } else {
-        return String(format: "\u{20B9}%.2f", value)
+        return String(format: "\u{20B9}%.0f", value)
     }
 }
 
 private func formatUSDMillion(_ value: Double) -> String {
-    let millions = value / 1_000_000
-    if millions >= 1 {
-        return String(format: "$%.2fM", millions)
-    } else if millions >= 0.001 {
-        return String(format: "$%.4fM", millions)
+    if value >= 1_000_000_000 {
+        return String(format: "$%.2fB", value / 1_000_000_000)
+    } else if value >= 100_000_000 {
+        return String(format: "$%.0fM", value / 1_000_000)
+    } else if value >= 1_000_000 {
+        return String(format: "$%.2fM", value / 1_000_000)
+    } else if value >= 1_000 {
+        return String(format: "$%.0fK", value / 1_000)
     } else {
-        return String(format: "$%.2f", value)
+        return String(format: "$%.0f", value)
     }
 }
 
 private func formatINR(_ value: Double) -> String {
-    return String(format: "\u{20B9}%.2f", value)
+    String(format: value < 100 ? "\u{20B9}%.2f" : "\u{20B9}%.0f", value)
 }
 
 private func formatPercent(_ value: Double) -> String {

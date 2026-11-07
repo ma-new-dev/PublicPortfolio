@@ -1,5 +1,28 @@
 import SwiftUI
 
+/// Short display forms used in dense lists (the folded cover screen is narrow).
+enum DisplayText {
+    private static let suffixes = [" Limited", " Ltd.", " Ltd", " LIMITED", " LTD"]
+
+    /// "Reliance Industries Limited" → "Reliance Industries"
+    static func company(_ name: String) -> String {
+        var result = name.trimmingCharacters(in: .whitespaces)
+        for suffix in suffixes where result.hasSuffix(suffix) {
+            result = String(result.dropLast(suffix.count))
+            break
+        }
+        return result
+    }
+
+    /// "RELIANCE.NS" → "RELIANCE"
+    static func symbol(_ ticker: String) -> String {
+        if ticker.hasSuffix(".NS") || ticker.hasSuffix(".BO") {
+            return String(ticker.dropLast(3))
+        }
+        return ticker
+    }
+}
+
 struct StockRowView: View {
     let holding: StockHolding
     let quote: StockQuote?
@@ -15,59 +38,50 @@ struct StockRowView: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
-            // Left: Company info
-            VStack(alignment: .leading, spacing: 4) {
-                Text(holding.companyName)
+        HStack(alignment: .center, spacing: 10) {
+            // Left: name + symbol. Takes the leftover width and truncates
+            // rather than wrapping.
+            VStack(alignment: .leading, spacing: 3) {
+                Text(DisplayText.company(holding.companyName))
                     .font(.headline)
-                    .lineLimit(1)
+                    .truncationMode(.tail)
 
-                HStack(spacing: 6) {
-                    Text(holding.ticker)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    Text("\(CurrencyFormatter.formatSharesMillions(holding.quantity)) shares")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.secondary.opacity(0.1))
-                        .clipShape(Capsule())
-                }
+                Text("\(DisplayText.symbol(holding.ticker)) · \(CurrencyFormatter.formatSharesMillions(holding.quantity)) sh")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .truncationMode(.middle)
             }
+            .lineLimit(1)
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-            Spacer()
-
-            // Right: Price info
+            // Right: numbers. Sized to fit, never wraps.
             if let quote {
-                VStack(alignment: .trailing, spacing: 4) {
-                    // Share price + % change (MOST visible)
+                VStack(alignment: .trailing, spacing: 3) {
                     HStack(spacing: 6) {
                         Text(CurrencyFormatter.formatINR(quote.currentPrice))
                             .font(.headline)
-
                         Text(CurrencyFormatter.formatPercent(quote.changePercent))
                             .font(.subheadline)
                             .fontWeight(.semibold)
                             .foregroundStyle(quote.isPositive ? .green : .red)
                     }
 
-                    // USD million value (medium visibility)
-                    Text(CurrencyFormatter.formatUSDMillion(holdingValueUSD))
-                        .font(.subheadline)
-                        .foregroundStyle(.blue)
-
-                    // INR crore value (least visible)
-                    Text(CurrencyFormatter.formatINRCrore(holdingValueINR))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    HStack(spacing: 6) {
+                        Text(CurrencyFormatter.formatUSDMillion(holdingValueUSD))
+                            .foregroundStyle(.blue)
+                        Text(CurrencyFormatter.formatINRCrore(holdingValueINR))
+                            .foregroundStyle(.secondary)
+                    }
+                    .font(.caption)
                 }
+                .lineLimit(1)
+                .monospacedDigit()
+                .fixedSize()
             } else {
                 ProgressView()
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 2)
         .contentShape(Rectangle())
     }
 }

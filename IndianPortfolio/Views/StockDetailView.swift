@@ -46,7 +46,7 @@ struct StockDetailView: View {
                 }
             }
         }
-        .navigationTitle(holding.companyName)
+        .navigationTitle(DisplayText.company(holding.companyName))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
