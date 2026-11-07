@@ -68,8 +68,8 @@ jobs:
           if [ -n "${{ github.event.inputs.build_number }}" ]; then
             BUILD_NUMBER="${{ github.event.inputs.build_number }}"
           else
-            # Project is at build 10; keep CI builds strictly increasing.
-            BUILD_NUMBER=$((10 + ${{ github.run_number }}))
+            # Project is at build 14; keep CI builds strictly increasing.
+            BUILD_NUMBER=$((14 + ${{ github.run_number }}))
           fi
           case "$BUILD_NUMBER" in (*[!0-9]*|'') echo "::error::Build number must be numeric"; exit 1;; esac
           echo "BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
