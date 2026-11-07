@@ -4,9 +4,10 @@ import CoreData
 
 /// Portfolio screen.
 ///
-/// Layouts (chosen from size classes, so they follow the window, not the device):
-/// * **Regular width** (unfolded inner display, iPad, Mac, large iPhones in
-///   landscape): split view: holdings sidebar + market overview / stock detail.
+/// Layouts (chosen from the actual window size, so they follow the window, not the device):
+/// * **Wide window** (unfolded inner display in either orientation, iPad, Mac,
+///   large iPhones in landscape): split view: holdings sidebar + market
+///   overview / stock detail.
 /// * **Compact width, compact height** (iPhone or cover display in landscape):
 ///   summary side panel + holdings list, so the list isn't squeezed.
 /// * **Compact width, regular height** (iPhone or cover display in portrait):
@@ -29,13 +30,15 @@ struct PortfolioView: View {
         return holdings.filter { seen.insert($0.ticker).inserted }
     }
 
-    private var isRegularWidth: Bool { horizontalSizeClass == .regular }
     private var isCompactHeight: Bool { verticalSizeClass == .compact }
 
     var body: some View {
-        Group {
-            if isRegularWidth {
+        GeometryReader { proxy in
+            if LayoutMetrics.useSplitLayout(size: proxy.size, horizontalSizeClass: horizontalSizeClass) {
+                // Force the split view to show both columns even when the
+                // system reports a compact size class (foldable inner screen).
                 splitLayout
+                    .environment(\.horizontalSizeClass, .regular)
             } else {
                 stackLayout
             }
@@ -514,7 +517,7 @@ struct MarketOverviewView: View {
                 } label: {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
-                            Text(holding.companyName)
+                            Text(DisplayText.company(holding.companyName))
                                 .lineLimit(1)
                             Spacer()
                             Text(CurrencyFormatter.formatUSDMillion(viewModel.holdingValueUSD(for: holding)))
@@ -552,7 +555,7 @@ struct MarketOverviewView: View {
                         onSelect(mover.holding)
                     } label: {
                         HStack {
-                            Text(mover.holding.companyName)
+                            Text(DisplayText.company(mover.holding.companyName))
                                 .lineLimit(1)
                             Spacer()
                             Text(CurrencyFormatter.formatPercent(mover.quote.changePercent))

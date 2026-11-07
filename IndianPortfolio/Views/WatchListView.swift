@@ -13,12 +13,11 @@ struct WatchListView: View {
     @State private var selectedItem: WatchListItem?
     @State private var isSyncingFromCloud = false
 
-    private var isRegularWidth: Bool { horizontalSizeClass == .regular }
-
     var body: some View {
-        Group {
-            if isRegularWidth {
+        GeometryReader { proxy in
+            if LayoutMetrics.useSplitLayout(size: proxy.size, horizontalSizeClass: horizontalSizeClass) {
                 splitLayout
+                    .environment(\.horizontalSizeClass, .regular)
             } else {
                 stackLayout
             }
@@ -54,7 +53,7 @@ struct WatchListView: View {
 
     private var splitLayout: some View {
         NavigationSplitView {
-            mainContent
+            mainContent(selectable: true)
                 .navigationTitle("Watch List")
                 .toolbar { toolbarItems }
                 .navigationSplitViewColumnWidth(min: 300, ideal: 360, max: 440)
@@ -84,7 +83,7 @@ struct WatchListView: View {
 
     private var stackLayout: some View {
         NavigationStack {
-            mainContent
+            mainContent(selectable: false)
                 .navigationTitle("Watch List")
                 .toolbar { toolbarItems }
         }
@@ -111,12 +110,12 @@ struct WatchListView: View {
 
     // MARK: - Main Content
 
-    private var mainContent: some View {
+    private func mainContent(selectable: Bool) -> some View {
         Group {
             if items.isEmpty {
                 emptyState
             } else {
-                itemsList
+                itemsList(selectable: selectable)
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
@@ -182,12 +181,12 @@ struct WatchListView: View {
 
     // MARK: - Items List
 
-    private var itemsList: some View {
+    private func itemsList(selectable: Bool) -> some View {
         List {
             Section("Watching (\(items.count))") {
                 ForEach(items) { item in
                     Group {
-                        if isRegularWidth {
+                        if selectable {
                             Button {
                                 selectedItem = item
                             } label: {

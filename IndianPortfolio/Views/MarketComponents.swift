@@ -14,6 +14,18 @@ enum LayoutMetrics {
     static let maxContentWidth: CGFloat = 1100
     /// Width of the summary side panel in wide list layouts.
     static let sidePanelWidth: CGFloat = 320
+
+    /// Minimum window size for the iPad-style split view (list + detail).
+    /// Decided from the real window size, not just the size class: the
+    /// foldable's inner display reports a *compact* size class even though it
+    /// is nearly iPad-sized, so a size-class check alone never enabled it.
+    static let splitMinWidth: CGFloat = 700
+    static let splitMinHeight: CGFloat = 500
+
+    static func useSplitLayout(size: CGSize, horizontalSizeClass: UserInterfaceSizeClass?) -> Bool {
+        if horizontalSizeClass == .regular { return true }
+        return size.width >= splitMinWidth && size.height >= splitMinHeight
+    }
 }
 
 /// A scroll view that tells its content whether it has room for two columns.
@@ -88,6 +100,8 @@ struct ChangeLabel: View {
     let change: Double
     let percent: Double
     var font: Font = .subheadline
+    /// Hide the absolute change where space is tight (shows % only).
+    var showsAbsolute: Bool = true
 
     private var isPositive: Bool { change >= 0 }
 
@@ -95,13 +109,18 @@ struct ChangeLabel: View {
         HStack(spacing: 4) {
             Image(systemName: isPositive ? "arrow.up.right" : "arrow.down.right")
                 .font(.caption2)
-            Text(CurrencyFormatter.formatChange(change))
-            Text("(\(CurrencyFormatter.formatPercent(percent)))")
+            if showsAbsolute {
+                Text(CurrencyFormatter.formatChange(change))
+                Text("(\(CurrencyFormatter.formatPercent(percent)))")
+            } else {
+                Text(CurrencyFormatter.formatPercent(percent))
+            }
         }
         .font(font)
         .fontWeight(.semibold)
         .foregroundStyle(isPositive ? .green : .red)
         .monospacedDigit()
+        .lineLimit(1)
     }
 }
 
@@ -123,9 +142,11 @@ struct MarketStatusBar: View {
                     .fill(isMarketOpen ? .green : .red)
                     .frame(width: 8, height: 8)
                 Text(MarketStatusService.statusText(isOpen: isMarketOpen))
+                    .fixedSize()
                 if let asOf = MarketStatusService.asOfText(lastUpdated) {
+                    // Truncates first when the screen is narrow.
                     Text("· \(asOf)")
-                        .lineLimit(1)
+                        .truncationMode(.tail)
                 }
             }
 
@@ -134,9 +155,10 @@ struct MarketStatusBar: View {
             if exchangeRate > 0 {
                 Text("$1 = ₹\(String(format: "%.2f", 1.0 / exchangeRate))")
                     .monospacedDigit()
-                    .lineLimit(1)
+                    .fixedSize()
             }
         }
+        .lineLimit(1)
         .font(.caption)
         .foregroundStyle(.secondary)
         .padding(.horizontal)
@@ -162,6 +184,7 @@ struct IndexTile: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
+            .lineLimit(1)
 
             if index.value > 0 {
                 Text(CurrencyFormatter.formatIndex(index.value))
@@ -174,9 +197,9 @@ struct IndexTile: View {
                 ChangeLabel(
                     change: index.change,
                     percent: index.changePercent,
-                    font: large ? .subheadline : .caption
+                    font: large ? .subheadline : .caption,
+                    showsAbsolute: large
                 )
-                .lineLimit(1)
                 .minimumScaleFactor(0.7)
             } else {
                 ProgressView()
@@ -224,7 +247,7 @@ struct PortfolioTotalsView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         } else {
-            HStack(alignment: .top) {
+            HStack(alignment: .top, spacing: 8) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Portfolio Total")
                         .font(.caption)
@@ -244,7 +267,9 @@ struct PortfolioTotalsView: View {
                         .foregroundStyle(.blue)
                         .monospacedDigit()
                 }
+                .fixedSize()
             }
+            .lineLimit(1)
         }
     }
 
