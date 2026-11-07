@@ -1,184 +1,82 @@
 import Foundation
 
-actor StockPriceService {
+/// App-facing wrapper around `MarketDataClient` (shared with the widget).
+struct StockPriceService {
 
-    // MARK: - Fetch live quote for a single ticker
+    // MARK: - Quotes
 
     func fetchQuote(for ticker: String) async throws -> StockQuote {
-        let urlString = "\(AppConstants.API.yahooChartBase)/\(ticker)?interval=1m&range=1d"
-        guard let url = URL(string: urlString) else {
-            throw ServiceError.invalidURL
-        }
-
-        var request = URLRequest(url: url)
-        request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            throw ServiceError.badResponse
-        }
-
-        return try parseChartResponse(data: data, ticker: ticker)
+        StockQuote(try await MarketDataClient.fetchQuote(ticker))
     }
 
-    // MARK: - Fetch quotes for multiple tickers
+    func fetchQuoteIfAvailable(for ticker: String) async -> StockQuote? {
+        try? await fetchQuote(for: ticker)
+    }
 
     func fetchQuotes(for tickers: [String]) async -> [String: StockQuote] {
-        var results: [String: StockQuote] = [:]
-        await withTaskGroup(of: (String, StockQuote?).self) { group in
-            for ticker in tickers {
-                group.addTask {
-                    let quote = try? await self.fetchQuote(for: ticker)
-                    return (ticker, quote)
-                }
-            }
-            for await (ticker, quote) in group {
-                if let quote {
-                    results[ticker] = quote
-                }
-            }
-        }
-        return results
+        let quotes = await MarketDataClient.fetchQuotes(tickers)
+        return quotes.mapValues { StockQuote($0) }
     }
 
-    // MARK: - Fetch intraday data for charting (portfolio-level, kept for backward compat)
-
-    func fetchIntradayData(for ticker: String) async throws -> [IntradayDataPoint] {
-        let result = try await fetchChartData(for: ticker, range: .oneDay)
-        return result.pricePoints
-    }
-
-    // MARK: - Fetch chart data for a given time range (price + volume)
+    // MARK: - Charts
 
     func fetchChartData(for ticker: String, range: ChartTimeRange) async throws -> ChartDataResult {
-        let urlString = "\(AppConstants.API.yahooChartBase)/\(ticker)?interval=\(range.yahooInterval)&range=\(range.yahooRange)"
-        guard let url = URL(string: urlString) else {
-            throw ServiceError.invalidURL
+        let chart = try await MarketDataClient.fetchChart(
+            ticker,
+            range: range.yahooRange,
+            interval: range.yahooInterval
+        )
+
+        var pricePoints: [IntradayDataPoint] = []
+        var volumePoints: [VolumeDataPoint] = []
+        for point in chart.points {
+            if let close = point.close, close > 0 {
+                pricePoints.append(IntradayDataPoint(timestamp: point.date, price: close))
+            }
+            if let volume = point.volume, volume > 0 {
+                volumePoints.append(VolumeDataPoint(timestamp: point.date, volume: volume))
+            }
         }
 
-        var request = URLRequest(url: url)
-        request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            throw ServiceError.badResponse
-        }
-
-        return try parseChartDataWithVolume(data: data)
+        return ChartDataResult(
+            pricePoints: pricePoints,
+            volumePoints: volumePoints,
+            previousClose: chart.previousClose
+        )
     }
 
-    // MARK: - Fetch market cap via v7/finance/quote (chart API doesn't reliably return it for .NS/.BO)
+    // MARK: - Market cap
 
     func fetchMarketCap(for ticker: String) async -> Double? {
-        let encoded = ticker.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ticker
-        let urlString = "https://query1.finance.yahoo.com/v7/finance/quote?symbols=\(encoded)&fields=marketCap"
-        guard let url = URL(string: urlString) else { return nil }
-
-        var request = URLRequest(url: url)
-        request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
-
-        guard let (data, response) = try? await URLSession.shared.data(for: request),
-              let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else { return nil }
-
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let quoteResponse = json["quoteResponse"] as? [String: Any],
-              let results = quoteResponse["result"] as? [[String: Any]],
-              let first = results.first,
-              let cap = first["marketCap"] as? Double,
-              cap > 0 else { return nil }
-
-        return cap
+        await MarketDataClient.fetchMarketCap(ticker)
     }
 
     // MARK: - Symbol search
 
     func searchSymbols(query: String) async throws -> [SymbolSearchResult] {
-        let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
-        let urlString = "\(AppConstants.API.yahooSearchBase)?q=\(encoded)&quotesCount=15&newsCount=0"
-        guard let url = URL(string: urlString) else {
-            throw ServiceError.invalidURL
-        }
+        let trimmed = String(query.trimmingCharacters(in: .whitespacesAndNewlines).prefix(64))
+        guard !trimmed.isEmpty else { return [] }
 
-        var request = URLRequest(url: url)
-        request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "query1.finance.yahoo.com"
+        components.path = "/v1/finance/search"
+        components.queryItems = [
+            URLQueryItem(name: "q", value: trimmed),
+            URLQueryItem(name: "quotesCount", value: "20"),
+            URLQueryItem(name: "newsCount", value: "0"),
+        ]
+        guard let url = components.url else { throw ServiceError.invalidURL }
 
-        let (data, _) = try await URLSession.shared.data(for: request)
-        return try parseSearchResults(data: data)
-    }
-
-    // MARK: - JSON Parsing
-
-    private func parseChartResponse(data: Data, ticker: String) throws -> StockQuote {
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let chart = json["chart"] as? [String: Any],
-              let results = chart["result"] as? [[String: Any]],
-              let result = results.first,
-              let meta = result["meta"] as? [String: Any],
-              let regularMarketPrice = meta["regularMarketPrice"] as? Double,
-              let previousClose = meta["chartPreviousClose"] as? Double
-        else {
-            throw ServiceError.parseError
-        }
-
-        let change = regularMarketPrice - previousClose
-        let changePercent = previousClose > 0 ? (change / previousClose) * 100 : 0
-        let marketCap = meta["marketCap"] as? Double
-
-        return StockQuote(
-            id: ticker,
-            currentPrice: regularMarketPrice,
-            previousClose: previousClose,
-            change: change,
-            changePercent: changePercent,
-            marketCap: marketCap,
-            lastUpdated: Date()
-        )
-    }
-
-    private func parseChartDataWithVolume(data: Data) throws -> ChartDataResult {
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let chart = json["chart"] as? [String: Any],
-              let results = chart["result"] as? [[String: Any]],
-              let result = results.first,
-              let timestamps = result["timestamp"] as? [Int],
-              let indicators = result["indicators"] as? [String: Any],
-              let quotes = indicators["quote"] as? [[String: Any]],
-              let quote = quotes.first,
-              let closes = quote["close"] as? [Double?]
-        else {
-            throw ServiceError.parseError
-        }
-
-        let volumes = quote["volume"] as? [Double?]
-
-        var pricePoints: [IntradayDataPoint] = []
-        var volumePoints: [VolumeDataPoint] = []
-
-        for (index, timestamp) in timestamps.enumerated() {
-            let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
-            if let close = closes[index] {
-                pricePoints.append(IntradayDataPoint(timestamp: date, price: close))
-            }
-            if let volumes = volumes, let vol = volumes[index] {
-                volumePoints.append(VolumeDataPoint(timestamp: date, volume: vol))
-            }
-        }
-
-        return ChartDataResult(pricePoints: pricePoints, volumePoints: volumePoints)
-    }
-
-    private func parseSearchResults(data: Data) throws -> [SymbolSearchResult] {
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let quotes = json["quotes"] as? [[String: Any]]
-        else {
+        let json = try await MarketDataClient.fetchJSON { _ in url }
+        guard let quotes = json["quotes"] as? [[String: Any]] else {
             throw ServiceError.parseError
         }
 
         return quotes.compactMap { quote in
             guard let symbol = quote["symbol"] as? String,
+                  MarketDataClient.isValidSymbol(symbol),
                   let name = (quote["longname"] as? String) ?? (quote["shortname"] as? String),
-                  let exchange = quote["exchange"] as? String,
                   let type = quote["quoteType"] as? String,
                   type == "EQUITY",
                   symbol.hasSuffix(".NS") || symbol.hasSuffix(".BO")
@@ -189,6 +87,20 @@ actor StockPriceService {
             let exchangeName = symbol.hasSuffix(".NS") ? "NSE" : "BSE"
             return SymbolSearchResult(symbol: symbol, name: name, exchange: exchangeName, type: type)
         }
+    }
+}
+
+extension StockQuote {
+    init(_ quote: MarketQuote) {
+        self.init(
+            id: quote.ticker,
+            currentPrice: quote.price,
+            previousClose: quote.previousClose,
+            change: quote.change,
+            changePercent: quote.changePercent,
+            marketCap: quote.marketCap,
+            lastUpdated: quote.marketTime ?? Date()
+        )
     }
 }
 

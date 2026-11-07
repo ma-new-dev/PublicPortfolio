@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import AuthenticationServices
+import WidgetKit
 
 struct AccountSettingsView: View {
     @Environment(\.modelContext) private var modelContext
@@ -14,6 +15,7 @@ struct AccountSettingsView: View {
     @State private var showingDeleteConfirmation = false
     @State private var showingSignOutConfirmation = false
     @State private var isDeleting = false
+    @State private var deleteError: String?
 
     /// When true, this view is presented as a sheet and shows a "Done" button.
     /// When false (e.g. inside a TabView), no Done button — the tab bar handles navigation.
@@ -135,6 +137,17 @@ struct AccountSettingsView: View {
             } message: {
                 Text("All portfolio holdings and watch list items will be permanently deleted. This cannot be undone.")
             }
+            .alert(
+                "Deletion Failed",
+                isPresented: Binding(
+                    get: { deleteError != nil },
+                    set: { if !$0 { deleteError = nil } }
+                )
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(deleteError ?? "")
+            }
             // Deleting overlay
             .overlay {
                 if isDeleting {
@@ -167,18 +180,28 @@ struct AccountSettingsView: View {
         isDeleting = true
 
         // 1. Delete all SwiftData records (holdings + watch list)
+        // NOTE: delete objects individually. `delete(model:)` performs a batch
+        // delete, which NSPersistentCloudKitContainer does not mirror to iCloud,
+        // so the "deleted" data would sync back from other devices / iCloud.
         do {
-            try modelContext.delete(model: StockHolding.self)
-            try modelContext.delete(model: WatchListItem.self)
+            for holding in try modelContext.fetch(FetchDescriptor<StockHolding>()) {
+                modelContext.delete(holding)
+            }
+            for item in try modelContext.fetch(FetchDescriptor<WatchListItem>()) {
+                modelContext.delete(item)
+            }
             try modelContext.save()
         } catch {
-            // Continue with sign-out even if deletion fails
+            // Don't pretend the data is gone if it isn't.
+            isDeleting = false
+            deleteError = "Your data could not be deleted: \(error.localizedDescription). Please try again."
+            return
         }
 
-        // 2. Clear shared App Group cache used by the widget
-        if let sharedDefaults = UserDefaults(suiteName: "group.com.portfolio.IndianPortfolio") {
-            sharedDefaults.removePersistentDomain(forName: "group.com.portfolio.IndianPortfolio")
-        }
+        // 2. Clear shared App Group cache used by the widget, and app-local prefs
+        PortfolioDataStore.clearAll()
+        WidgetCenter.shared.reloadAllTimelines()
+        UserDefaults.standard.removeObject(forKey: "portfolioSortOption")
 
         // 3. Clear auth state
         appleUserID = ""

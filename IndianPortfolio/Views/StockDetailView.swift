@@ -9,13 +9,17 @@ struct StockDetailView: View {
     let holding: StockHolding
     let quote: StockQuote?
     let exchangeRate: Double
+    var onDelete: (() -> Void)? = nil
 
     @State private var viewModel = StockDetailViewModel()
     @State private var showingEditSheet = false
     @State private var showingDeleteConfirmation = false
 
+    /// Prefer the quote fetched by this screen; fall back to the list's quote.
+    private var currentQuote: StockQuote? { viewModel.liveQuote ?? quote }
+
     private var holdingValueINR: Double {
-        (quote?.currentPrice ?? 0) * Double(holding.quantity)
+        (currentQuote?.currentPrice ?? 0) * Double(holding.quantity)
     }
 
     private var holdingValueUSD: Double {
@@ -24,37 +28,29 @@ struct StockDetailView: View {
     }
 
     var body: some View {
-        ScrollView {
+        AdaptiveScrollView { isWide in
             VStack(spacing: 20) {
-                // Header: Current price & holding value
-                headerSection
+                headerSection(isWide: isWide)
 
-                // Time range picker
-                timeRangePicker
-
-                // Price chart
-                priceChartSection
-
-                // Volume chart
-                volumeChartSection
-
-                // Stats grid
-                statsSection
-
-                // Delete button
-                deleteButton
+                AdaptiveColumns(isWide: isWide) {
+                    RangePicker(selected: viewModel.selectedRange) { range in
+                        viewModel.changeRange(to: range, ticker: holding.ticker)
+                    }
+                    PriceChartCard(viewModel: viewModel, height: isWide ? 320 : 220)
+                    if viewModel.hasVolume {
+                        VolumeChartCard(viewModel: viewModel, height: isWide ? 140 : 120)
+                    }
+                } secondary: {
+                    StatsCard(items: stats)
+                    deleteButton
+                }
             }
-            .padding()
         }
         .navigationTitle(holding.companyName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showingEditSheet = true
-                } label: {
-                    Text("Edit")
-                }
+                Button("Edit") { showingEditSheet = true }
             }
         }
         .sheet(isPresented: $showingEditSheet) {
@@ -67,36 +63,32 @@ struct StockDetailView: View {
             titleVisibility: .visible
         ) {
             Button("Delete", role: .destructive) {
-                modelContext.delete(holding)
-                dismiss()
+                if let onDelete {
+                    onDelete()
+                } else {
+                    modelContext.delete(holding)
+                    dismiss()
+                }
             }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This will permanently remove \(holding.companyName) from your portfolio.")
         }
-        .task {
+        .task(id: holding.ticker) {
             await viewModel.fetchData(for: holding.ticker)
         }
     }
 
     // MARK: - Header
 
-    private var headerSection: some View {
+    private func headerSection(isWide: Bool) -> some View {
         VStack(spacing: 12) {
-            // Ticker + Exchange badge
             HStack {
                 Text(holding.ticker)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
-                Text(holding.exchange)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.blue)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 2)
-                    .background(Color.blue.opacity(0.1))
-                    .clipShape(Capsule())
+                ExchangeBadge(exchange: holding.exchange)
 
                 Spacer()
 
@@ -105,28 +97,26 @@ struct StockDetailView: View {
                     .foregroundStyle(.secondary)
             }
 
-            // Current price
-            if let quote {
+            if let q = currentQuote {
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
-                    Text(CurrencyFormatter.formatINR(quote.currentPrice))
+                    Text(CurrencyFormatter.formatINR(q.currentPrice))
                         .font(.system(size: 34, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(CurrencyFormatter.formatChange(quote.change))
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(quote.isPositive ? .green : .red)
-
-                        Text(CurrencyFormatter.formatPercent(quote.changePercent))
-                            .font(.caption)
-                            .foregroundStyle(quote.isPositive ? .green : .red)
-                    }
+                    ChangeLabel(change: q.change, percent: q.changePercent)
 
                     Spacer()
+
+                    if let asOf = MarketStatusService.asOfText(q.lastUpdated) {
+                        Text(asOf)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
 
-            // Holding value
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Holding Value")
@@ -135,6 +125,7 @@ struct StockDetailView: View {
                     Text(CurrencyFormatter.formatINRCrore(holdingValueINR))
                         .font(.title3)
                         .fontWeight(.semibold)
+                        .monospacedDigit()
                 }
 
                 Spacer()
@@ -147,6 +138,7 @@ struct StockDetailView: View {
                         .font(.title3)
                         .fontWeight(.semibold)
                         .foregroundStyle(.blue)
+                        .monospacedDigit()
                 }
             }
             .padding()
@@ -157,225 +149,22 @@ struct StockDetailView: View {
         }
     }
 
-    // MARK: - Time Range Picker
-
-    private var timeRangePicker: some View {
-        HStack(spacing: 0) {
-            ForEach(ChartTimeRange.allCases) { range in
-                Button {
-                    viewModel.changeRange(to: range, ticker: holding.ticker)
-                } label: {
-                    Text(range.rawValue)
-                        .font(.subheadline)
-                        .fontWeight(viewModel.selectedRange == range ? .bold : .regular)
-                        .foregroundStyle(viewModel.selectedRange == range ? .white : .primary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(viewModel.selectedRange == range ? Color.blue : Color.clear)
-                        )
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(4)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color(.systemGray6))
-        )
-    }
-
-    // MARK: - Price Chart
-
-    private var priceChartSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Price")
-                    .font(.headline)
-
-                Spacer()
-
-                if !viewModel.priceData.isEmpty {
-                    HStack(spacing: 4) {
-                        Image(systemName: viewModel.isPositive ? "arrow.up.right" : "arrow.down.right")
-                        Text(CurrencyFormatter.formatPercent(viewModel.priceChangePercent))
-                    }
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundStyle(viewModel.isPositive ? .green : .red)
-                }
-            }
-
-            if viewModel.isLoading {
-                ProgressView()
-                    .frame(height: 220)
-                    .frame(maxWidth: .infinity)
-            } else if viewModel.priceData.isEmpty {
-                ContentUnavailableView(
-                    "No Data",
-                    systemImage: "chart.line.downtrend.xyaxis",
-                    description: Text(viewModel.errorMessage ?? "Unable to load chart data")
-                )
-                .frame(height: 220)
-            } else {
-                Chart(viewModel.priceData) { point in
-                    LineMark(
-                        x: .value("Time", point.timestamp),
-                        y: .value("Price", point.price)
-                    )
-                    .foregroundStyle(viewModel.isPositive ? Color.green : Color.red)
-                    .interpolationMethod(.catmullRom)
-
-                    AreaMark(
-                        x: .value("Time", point.timestamp),
-                        y: .value("Price", point.price)
-                    )
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [
-                                (viewModel.isPositive ? Color.green : Color.red).opacity(0.3),
-                                (viewModel.isPositive ? Color.green : Color.red).opacity(0.02)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .interpolationMethod(.catmullRom)
-                }
-                .chartYScale(domain: chartYDomain)
-                .chartXAxis {
-                    AxisMarks { value in
-                        AxisValueLabel(format: viewModel.selectedRange.xAxisFormat)
-                        AxisGridLine()
-                    }
-                }
-                .chartYAxis {
-                    AxisMarks(position: .trailing) { value in
-                        AxisValueLabel {
-                            if let v = value.as(Double.self) {
-                                Text(CurrencyFormatter.formatINR(v))
-                                    .font(.caption2)
-                            }
-                        }
-                    }
-                }
-                .frame(height: 220)
-            }
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial)
-        )
-    }
-
-    private var chartYDomain: ClosedRange<Double> {
-        let prices = viewModel.priceData.map(\.price)
-        let min = (prices.min() ?? 0) * 0.998
-        let max = (prices.max() ?? 0) * 1.002
-        return min...max
-    }
-
-    // MARK: - Volume Chart
-
-    private var volumeChartSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Volume")
-                    .font(.headline)
-
-                Spacer()
-
-                if viewModel.totalVolume > 0 {
-                    Text(formatVolume(viewModel.totalVolume))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            if !viewModel.volumeData.isEmpty {
-                Chart(viewModel.volumeData) { point in
-                    BarMark(
-                        x: .value("Time", point.timestamp),
-                        y: .value("Volume", point.volume)
-                    )
-                    .foregroundStyle(Color.blue.opacity(0.6))
-                }
-                .chartXAxis {
-                    AxisMarks { value in
-                        AxisValueLabel(format: viewModel.selectedRange.xAxisFormat)
-                    }
-                }
-                .chartYAxis {
-                    AxisMarks(position: .trailing) { value in
-                        AxisValueLabel {
-                            if let v = value.as(Double.self) {
-                                Text(formatVolume(v))
-                                    .font(.caption2)
-                            }
-                        }
-                    }
-                }
-                .frame(height: 120)
-            } else if !viewModel.isLoading {
-                Text("No volume data available")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(height: 60)
-                    .frame(maxWidth: .infinity)
-            }
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial)
-        )
-    }
-
     // MARK: - Stats
 
-    private var statsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Statistics")
-                .font(.headline)
-
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 12) {
-                statCard(title: "High", value: CurrencyFormatter.formatINR(viewModel.highPrice))
-                statCard(title: "Low", value: CurrencyFormatter.formatINR(viewModel.lowPrice))
-                statCard(title: "Prev Close", value: CurrencyFormatter.formatINR(quote?.previousClose ?? 0))
-                statCard(title: "Total Volume", value: formatVolume(viewModel.totalVolume))
-                if let marketCap = viewModel.marketCap ?? quote?.marketCap, marketCap > 0 {
-                    statCard(title: "Mkt Cap (INR)", value: CurrencyFormatter.formatMarketCapINR(marketCap))
-                    statCard(title: "Mkt Cap (USD)", value: CurrencyFormatter.formatMarketCapUSD(marketCap * exchangeRate))
-                }
+    private var stats: [StatItem] {
+        var items: [StatItem] = [
+            StatItem(title: "\(viewModel.selectedRange.rawValue) High", value: CurrencyFormatter.formatINR(viewModel.highPrice)),
+            StatItem(title: "\(viewModel.selectedRange.rawValue) Low", value: CurrencyFormatter.formatINR(viewModel.lowPrice)),
+            StatItem(title: "Prev Close", value: CurrencyFormatter.formatINR(currentQuote?.previousClose ?? 0)),
+            StatItem(title: "Volume", value: VolumeFormatter.format(viewModel.totalVolume)),
+        ]
+        if let cap = viewModel.marketCap ?? currentQuote?.marketCap, cap > 0 {
+            items.append(StatItem(title: "Mkt Cap (INR)", value: CurrencyFormatter.formatMarketCapINR(cap)))
+            if exchangeRate > 0 {
+                items.append(StatItem(title: "Mkt Cap (USD)", value: CurrencyFormatter.formatMarketCapUSD(cap * exchangeRate)))
             }
         }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial)
-        )
-    }
-
-    private func statCard(title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.subheadline)
-                .fontWeight(.semibold)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color(.systemGray6))
-        )
+        return items
     }
 
     // MARK: - Delete Button
@@ -384,31 +173,29 @@ struct StockDetailView: View {
         Button(role: .destructive) {
             showingDeleteConfirmation = true
         } label: {
-            HStack {
-                Image(systemName: "trash")
-                Text("Remove from Portfolio")
-            }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.red.opacity(0.1))
-            )
+            Label("Remove from Portfolio", systemImage: "trash")
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.red.opacity(0.1))
+                )
         }
         .foregroundStyle(.red)
     }
+}
 
-    // MARK: - Helpers
+struct ExchangeBadge: View {
+    let exchange: String
 
-    private func formatVolume(_ value: Double) -> String {
-        if value >= 10_000_000 {
-            return String(format: "%.1fCr", value / 10_000_000)
-        } else if value >= 100_000 {
-            return String(format: "%.1fL", value / 100_000)
-        } else if value >= 1_000 {
-            return String(format: "%.1fK", value / 1_000)
-        } else {
-            return String(format: "%.0f", value)
-        }
+    var body: some View {
+        Text(exchange)
+            .font(.caption)
+            .fontWeight(.medium)
+            .foregroundStyle(.blue)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 2)
+            .background(Color.blue.opacity(0.1))
+            .clipShape(Capsule())
     }
 }

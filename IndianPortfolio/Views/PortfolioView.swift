@@ -2,13 +2,23 @@ import SwiftUI
 import SwiftData
 import CoreData
 
+/// Portfolio screen.
+///
+/// Layouts (chosen from size classes, so they follow the window, not the device):
+/// * **Regular width** (unfolded inner display, iPad, Mac, large iPhones in
+///   landscape): split view: holdings sidebar + market overview / stock detail.
+/// * **Compact width, compact height** (iPhone or cover display in landscape):
+///   summary side panel + holdings list, so the list isn't squeezed.
+/// * **Compact width, regular height** (iPhone or cover display in portrait):
+///   classic stacked layout.
 struct PortfolioView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.scenePhase) private var scenePhase
     @Query(sort: \StockHolding.dateAdded, order: .reverse) private var holdings: [StockHolding]
     @State private var viewModel = PortfolioViewModel()
     @State private var showingAddSheet = false
-    @State private var showingAccountSettings = false
     @State private var selectedHolding: StockHolding?
     @State private var isEditing = false
     @State private var isSyncingFromCloud = false
@@ -16,46 +26,18 @@ struct PortfolioView: View {
     /// Deduplicated holdings — keeps only the first (newest) entry per ticker
     private var uniqueHoldings: [StockHolding] {
         var seen = Set<String>()
-        return holdings.filter { holding in
-            if seen.contains(holding.ticker) {
-                return false
-            }
-            seen.insert(holding.ticker)
-            return true
-        }
+        return holdings.filter { seen.insert($0.ticker).inserted }
     }
+
+    private var isRegularWidth: Bool { horizontalSizeClass == .regular }
+    private var isCompactHeight: Bool { verticalSizeClass == .compact }
 
     var body: some View {
-        if horizontalSizeClass == .regular {
-            iPadLayout
-        } else {
-            iPhoneLayout
-        }
-    }
-
-    // MARK: - iPad Layout (NavigationSplitView)
-
-    private var iPadLayout: some View {
-        NavigationSplitView {
-            mainContent
-                .navigationTitle("Portfolio")
-                .toolbar { toolbarItems }
-                .sheet(isPresented: $showingAccountSettings) {
-                    AccountSettingsView()
-                }
-        } detail: {
-            if let holding = selectedHolding {
-                StockDetailView(
-                    holding: holding,
-                    quote: viewModel.quotes[holding.ticker],
-                    exchangeRate: viewModel.exchangeRate
-                )
+        Group {
+            if isRegularWidth {
+                splitLayout
             } else {
-                ContentUnavailableView(
-                    "Select a Stock",
-                    systemImage: "chart.line.uptrend.xyaxis",
-                    description: Text("Choose a holding from the list to view details.")
-                )
+                stackLayout
             }
         }
         .sheet(isPresented: $showingAddSheet) {
@@ -65,20 +47,24 @@ struct PortfolioView: View {
         .task {
             removeDuplicates()
             await viewModel.refreshAll(holdings: uniqueHoldings)
+            viewModel.startAutoRefresh(holdings: uniqueHoldings)
         }
         .onChange(of: holdings) { _, _ in
             removeDuplicates()
             Task { await viewModel.refreshAll(holdings: uniqueHoldings) }
             viewModel.startAutoRefresh(holdings: uniqueHoldings)
         }
-        .onAppear {
-            viewModel.startAutoRefresh(holdings: uniqueHoldings)
+        .onChange(of: viewModel.sortOption) { _, _ in
+            viewModel.persistSortOption()
         }
-        .onDisappear {
-            viewModel.stopAutoRefresh()
-        }
-        .refreshable {
-            await viewModel.refreshAll(holdings: uniqueHoldings)
+        .onChange(of: scenePhase) { _, phase in
+            // Don't poll in the background; refresh immediately on return.
+            if phase == .active {
+                Task { await viewModel.refreshAll(holdings: uniqueHoldings) }
+                viewModel.startAutoRefresh(holdings: uniqueHoldings)
+            } else if phase == .background {
+                viewModel.stopAutoRefresh()
+            }
         }
         .onReceive(NotificationCenter.default.publisher(
             for: NSPersistentCloudKitContainer.eventChangedNotification
@@ -87,339 +73,309 @@ struct PortfolioView: View {
         }
     }
 
-    // MARK: - iPhone Layout (NavigationStack)
+    // MARK: - Regular width: split view
 
-    private var iPhoneLayout: some View {
+    private var splitLayout: some View {
+        NavigationSplitView {
+            Group {
+                if uniqueHoldings.isEmpty {
+                    emptyState(showIndices: false)
+                } else {
+                    holdingsList(selectable: true)
+                }
+            }
+            .safeAreaInset(edge: .top, spacing: 0) { statusHeader }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if !uniqueHoldings.isEmpty { portfolioFooter }
+            }
+            .navigationTitle("Portfolio")
+            .toolbar { toolbarItems }
+            .navigationSplitViewColumnWidth(min: 320, ideal: 380, max: 460)
+        } detail: {
+            NavigationStack {
+                if let holding = selectedHolding {
+                    StockDetailView(
+                        holding: holding,
+                        quote: viewModel.quotes[holding.ticker],
+                        exchangeRate: viewModel.exchangeRate,
+                        onDelete: { deleteHolding(holding) }
+                    )
+                    .id(holding.id)
+                } else {
+                    MarketOverviewView(
+                        viewModel: viewModel,
+                        holdings: uniqueHoldings,
+                        onSelect: { selectedHolding = $0 }
+                    )
+                }
+            }
+        }
+        .navigationSplitViewStyle(.balanced)
+    }
+
+    // MARK: - Compact width: navigation stack
+
+    private var stackLayout: some View {
         NavigationStack {
-            mainContent
-                .navigationTitle("Portfolio")
-                .toolbar { toolbarItems }
-                .sheet(isPresented: $showingAccountSettings) {
-                    AccountSettingsView()
+            Group {
+                if isCompactHeight {
+                    landscapeContent
+                } else {
+                    portraitContent
                 }
-                .sheet(isPresented: $showingAddSheet) {
-                    AddStockView()
-                        .presentationDetents([.large])
-                }
-                .task {
-                    removeDuplicates()
-                    await viewModel.refreshAll(holdings: uniqueHoldings)
-                }
-                .onChange(of: holdings) { _, _ in
-                    removeDuplicates()
-                    Task { await viewModel.refreshAll(holdings: uniqueHoldings) }
-                    viewModel.startAutoRefresh(holdings: uniqueHoldings)
-                }
-                .onAppear {
-                    viewModel.startAutoRefresh(holdings: uniqueHoldings)
-                }
-                .onDisappear {
-                    viewModel.stopAutoRefresh()
-                }
-                .refreshable {
-                    await viewModel.refreshAll(holdings: uniqueHoldings)
-                }
-                .onReceive(NotificationCenter.default.publisher(
-                    for: NSPersistentCloudKitContainer.eventChangedNotification
-                )) { notification in
-                    handleCloudKitEvent(notification)
-                }
+            }
+            .navigationTitle("Portfolio")
+            .navigationBarTitleDisplayMode(isCompactHeight ? .inline : .automatic)
+            .toolbar { toolbarItems }
         }
     }
 
-    // MARK: - Shared main content
-
-    private var mainContent: some View {
-        ZStack {
+    private var portraitContent: some View {
+        Group {
             if uniqueHoldings.isEmpty {
-                emptyState
+                emptyState(showIndices: true)
             } else {
-                holdingsList
+                VStack(spacing: 0) {
+                    statusHeader
+                    indicesRow
+                    holdingsList(selectable: false)
+                    portfolioFooter
+                }
             }
         }
     }
 
-    // MARK: - Toolbar items
+    /// Landscape on a phone-width window: summary on the left, list on the right.
+    private var landscapeContent: some View {
+        HStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 12) {
+                    ForEach(viewModel.indices) { index in
+                        indexLink(index)
+                    }
+                    if !uniqueHoldings.isEmpty {
+                        totalsView(large: false)
+                            .padding(12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color(.systemGray6))
+                            )
+                    }
+                }
+                .padding(12)
+            }
+            .frame(width: 280)
+            .safeAreaInset(edge: .top, spacing: 0) { statusHeader }
+
+            Divider()
+
+            if uniqueHoldings.isEmpty {
+                emptyState(showIndices: false)
+            } else {
+                holdingsList(selectable: false)
+            }
+        }
+    }
+
+    // MARK: - Toolbar
 
     @ToolbarContentBuilder
     private var toolbarItems: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            HStack(spacing: 12) {
-                sortMenu
-                Button {
-                    withAnimation {
-                        isEditing.toggle()
-                    }
-                } label: {
-                    Text(isEditing ? "Done" : "Edit")
-                        .font(.subheadline)
+        ToolbarItemGroup(placement: .topBarLeading) {
+            sortMenu
+            if !uniqueHoldings.isEmpty {
+                Button(isEditing ? "Done" : "Edit") {
+                    withAnimation { isEditing.toggle() }
                 }
             }
         }
-        ToolbarItem(placement: .topBarTrailing) {
-            HStack(spacing: 12) {
-                if viewModel.isLoading {
-                    ProgressView()
-                } else {
-                    Button {
-                        Task { await viewModel.refreshAll(holdings: uniqueHoldings) }
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                    }
-                }
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            if viewModel.isLoading {
+                ProgressView()
+            } else {
                 Button {
-                    showingAddSheet = true
+                    Task { await viewModel.refreshAll(holdings: uniqueHoldings) }
                 } label: {
-                    Image(systemName: "plus")
+                    Image(systemName: "arrow.clockwise")
                 }
-                Button {
-                    showingAccountSettings = true
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "person.crop.circle")
-                        Text("Account")
-                            .font(.subheadline)
-                    }
+                .accessibilityLabel("Refresh prices")
+            }
+            Button {
+                showingAddSheet = true
+            } label: {
+                Image(systemName: "plus")
+            }
+            .accessibilityLabel("Add stock")
+        }
+    }
+
+    private var sortMenu: some View {
+        Menu {
+            Picker("Sort", selection: $viewModel.sortOption) {
+                ForEach(SortOption.allCases) { option in
+                    Text(option.rawValue).tag(option)
                 }
-                .accessibilityLabel("Account & Data")
-                .accessibilityHint("Manage account, sign out, or delete your account and data")
+            }
+        } label: {
+            Label("Sort", systemImage: "arrow.up.arrow.down")
+        }
+    }
+
+    // MARK: - Header pieces
+
+    private var statusHeader: some View {
+        VStack(spacing: 0) {
+            MarketStatusBar(
+                isMarketOpen: viewModel.isMarketOpen,
+                exchangeRate: viewModel.exchangeRate,
+                lastUpdated: viewModel.lastRefreshed,
+                isSyncing: isSyncingFromCloud
+            )
+            if let message = viewModel.errorMessage {
+                Label(message, systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal)
+                    .padding(.vertical, 4)
+                    .background(Color.orange.opacity(0.1))
             }
         }
     }
 
-    // MARK: - Sort menu
-
-    private var sortMenu: some View {
-        Menu {
-            ForEach(SortOption.allCases) { option in
-                Button {
-                    viewModel.sortOption = option
-                } label: {
-                    HStack {
-                        Text(option.rawValue)
-                        if viewModel.sortOption == option {
-                            Image(systemName: "checkmark")
-                        }
-                    }
-                }
-            }
-        } label: {
-            HStack(spacing: 4) {
-                Image(systemName: "arrow.up.arrow.down")
-                Text("Sort")
-                    .font(.subheadline)
+    private var indicesRow: some View {
+        HStack(spacing: 12) {
+            ForEach(viewModel.indices) { index in
+                indexLink(index)
             }
         }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+    }
+
+    private func indexLink(_ index: MarketIndex) -> some View {
+        NavigationLink {
+            IndexDetailView(index: index)
+        } label: {
+            IndexTile(index: index)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func totalsView(large: Bool) -> some View {
+        PortfolioTotalsView(
+            totalINR: viewModel.totalValueINR(for: uniqueHoldings),
+            totalUSD: viewModel.totalValueUSD(for: uniqueHoldings),
+            dayChangeINR: viewModel.dayChangeINR(for: uniqueHoldings),
+            dayChangePercent: viewModel.dayChangePercent(for: uniqueHoldings),
+            exchangeRate: viewModel.exchangeRate,
+            large: large
+        )
     }
 
     // MARK: - Empty state
 
-    private var emptyState: some View {
+    private func emptyState(showIndices: Bool) -> some View {
         VStack(spacing: 0) {
-            // Market status bar
-            marketStatusBar
-
-            // Market indices
-            indicesSection
-
+            if showIndices {
+                statusHeader
+                indicesRow
+            }
             Spacer()
-
             ContentUnavailableView {
                 Label("No Holdings", systemImage: "chart.bar.doc.horizontal")
             } description: {
                 Text("Add Indian stocks to your portfolio to track their fair market value.")
             } actions: {
-                Button("Add Stock") {
-                    showingAddSheet = true
-                }
-                .buttonStyle(.borderedProminent)
+                Button("Add Stock") { showingAddSheet = true }
+                    .buttonStyle(.borderedProminent)
             }
-
             Spacer()
-        }
-    }
-
-    // MARK: - Market status bar
-
-    private var marketStatusBar: some View {
-        HStack {
-            if isSyncingFromCloud {
-                ProgressView()
-                    .controlSize(.mini)
-                Text("Syncing from iCloud…")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                Circle()
-                    .fill(viewModel.isMarketOpen ? .green : .red)
-                    .frame(width: 8, height: 8)
-                Text(MarketStatusService.marketStatusText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            if viewModel.exchangeRate > 0 {
-                Text("1 USD = \(String(format: "%.2f", 1.0 / viewModel.exchangeRate)) INR")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 6)
-        .background(Color(.systemGray6))
-    }
-
-    // MARK: - Market Indices
-
-    private var indicesSection: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                ForEach(viewModel.indices) { index in
-                    NavigationLink {
-                        IndexDetailView(index: index)
-                    } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(index.name)
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.primary)
-
-                            if index.value > 0 {
-                                Text(String(format: "%.0f", index.value))
-                                    .font(.subheadline)
-                                    .fontWeight(.bold)
-                                    .foregroundStyle(.primary)
-
-                                HStack(spacing: 4) {
-                                    Image(systemName: index.isPositive ? "arrow.up.right" : "arrow.down.right")
-                                        .font(.caption2)
-                                    Text(CurrencyFormatter.formatPercent(index.changePercent))
-                                        .font(.caption)
-                                        .fontWeight(.medium)
-                                }
-                                .foregroundStyle(index.isPositive ? .green : .red)
-                            } else {
-                                ProgressView()
-                                    .controlSize(.small)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(10)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Color(.systemGray6))
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal)
-            .padding(.vertical, 8)
         }
     }
 
     // MARK: - Holdings list
 
-    private var holdingsList: some View {
-        VStack(spacing: 0) {
-            // Market status bar
-            marketStatusBar
+    private func holdingsList(selectable: Bool) -> some View {
+        List {
+            if selectable {
+                Section {
+                    Button {
+                        selectedHolding = nil
+                    } label: {
+                        Label("Market Overview", systemImage: "chart.xyaxis.line")
+                    }
+                    .listRowBackground(
+                        selectedHolding == nil ? Color.blue.opacity(0.12) : Color(.secondarySystemGroupedBackground)
+                    )
+                }
+            }
 
-            // Market indices
-            indicesSection
-
-            // Stocks list
-            List {
-                Section("Holdings (\(uniqueHoldings.count))") {
-                    ForEach(viewModel.sortedHoldings(uniqueHoldings), id: \.id) { holding in
-                        Group {
-                            if horizontalSizeClass == .regular {
-                                // iPad: tap to select, show detail in split view
-                                Button {
-                                    selectedHolding = holding
-                                } label: {
-                                    StockRowView(
-                                        holding: holding,
-                                        quote: viewModel.quotes[holding.ticker],
-                                        exchangeRate: viewModel.exchangeRate
-                                    )
-                                }
-                                .listRowBackground(
-                                    selectedHolding?.id == holding.id
-                                        ? Color.blue.opacity(0.1)
-                                        : Color(.systemBackground)
-                                )
-                            } else {
-                                // iPhone: NavigationLink pushes detail
-                                NavigationLink {
-                                    StockDetailView(
-                                        holding: holding,
-                                        quote: viewModel.quotes[holding.ticker],
-                                        exchangeRate: viewModel.exchangeRate
-                                    )
-                                } label: {
-                                    StockRowView(
-                                        holding: holding,
-                                        quote: viewModel.quotes[holding.ticker],
-                                        exchangeRate: viewModel.exchangeRate
-                                    )
-                                }
-                            }
-                        }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button(role: .destructive) {
-                                deleteHolding(holding)
+            Section("Holdings (\(uniqueHoldings.count))") {
+                ForEach(viewModel.sortedHoldings(uniqueHoldings), id: \.id) { holding in
+                    Group {
+                        if selectable {
+                            Button {
+                                selectedHolding = holding
                             } label: {
-                                Label("Delete", systemImage: "trash")
+                                row(for: holding)
+                            }
+                            .buttonStyle(.plain)
+                            .listRowBackground(
+                                selectedHolding?.id == holding.id
+                                    ? Color.blue.opacity(0.12)
+                                    : Color(.secondarySystemGroupedBackground)
+                            )
+                        } else {
+                            NavigationLink {
+                                StockDetailView(
+                                    holding: holding,
+                                    quote: viewModel.quotes[holding.ticker],
+                                    exchangeRate: viewModel.exchangeRate
+                                )
+                            } label: {
+                                row(for: holding)
                             }
                         }
                     }
-                    .onDelete { offsets in
-                        let sorted = viewModel.sortedHoldings(uniqueHoldings)
-                        for index in offsets {
-                            deleteHolding(sorted[index])
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) {
+                            deleteHolding(holding)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
                         }
                     }
                 }
+                .onDelete { offsets in
+                    let sorted = viewModel.sortedHoldings(uniqueHoldings)
+                    for index in offsets where index < sorted.count {
+                        deleteHolding(sorted[index])
+                    }
+                }
             }
-            .listStyle(.insetGrouped)
-            .environment(\.editMode, .constant(isEditing ? .active : .inactive))
-
-            // Bottom portfolio total
-            portfolioFooter
+        }
+        .listStyle(.insetGrouped)
+        .environment(\.editMode, .constant(isEditing ? .active : .inactive))
+        .refreshable {
+            await viewModel.refreshAll(holdings: uniqueHoldings)
         }
     }
 
-    // MARK: - Portfolio footer
+    private func row(for holding: StockHolding) -> some View {
+        StockRowView(
+            holding: holding,
+            quote: viewModel.quotes[holding.ticker],
+            exchangeRate: viewModel.exchangeRate
+        )
+    }
 
     private var portfolioFooter: some View {
         VStack(spacing: 0) {
             Divider()
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Portfolio Total")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(CurrencyFormatter.formatINRCrore(viewModel.totalValueINR(for: uniqueHoldings)))
-                        .font(.headline)
-                }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("USD Value")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(CurrencyFormatter.formatUSDMillion(viewModel.totalValueUSD(for: uniqueHoldings)))
-                        .font(.headline)
-                        .foregroundStyle(.blue)
-                }
-            }
-            .padding(.horizontal)
-            .padding(.vertical, 12)
-            .background(.ultraThinMaterial)
+            totalsView(large: false)
+                .padding(.horizontal)
+                .padding(.vertical, 10)
+                .background(.ultraThinMaterial)
         }
     }
 
@@ -434,10 +390,8 @@ struct PortfolioView: View {
 
         if event.type == .import {
             if event.endDate == nil {
-                // Import in progress
                 isSyncingFromCloud = true
             } else {
-                // Import finished
                 isSyncingFromCloud = false
                 Task { @MainActor in
                     removeDuplicates()
@@ -452,11 +406,11 @@ struct PortfolioView: View {
     /// Delete a holding and all its duplicates (same ticker)
     private func deleteHolding(_ holding: StockHolding) {
         let ticker = holding.ticker
-        for h in holdings where h.ticker == ticker {
-            modelContext.delete(h)
-        }
         if selectedHolding?.ticker == ticker {
             selectedHolding = nil
+        }
+        for h in holdings where h.ticker == ticker {
+            modelContext.delete(h)
         }
     }
 
@@ -464,11 +418,156 @@ struct PortfolioView: View {
     private func removeDuplicates() {
         var seen = Set<String>()
         for holding in holdings {
-            if seen.contains(holding.ticker) {
+            if !seen.insert(holding.ticker).inserted {
                 modelContext.delete(holding)
-            } else {
-                seen.insert(holding.ticker)
             }
         }
+    }
+}
+
+// MARK: - Market overview (detail column on wide screens)
+
+struct MarketOverviewView: View {
+    let viewModel: PortfolioViewModel
+    let holdings: [StockHolding]
+    let onSelect: (StockHolding) -> Void
+
+    struct Mover: Identifiable {
+        let holding: StockHolding
+        let quote: StockQuote
+        var id: UUID { holding.id }
+    }
+
+    private var quoted: [Mover] {
+        holdings.compactMap { h in
+            guard let q = viewModel.quotes[h.ticker] else { return nil }
+            return Mover(holding: h, quote: q)
+        }
+    }
+
+    private var gainers: [Mover] {
+        Array(quoted.filter { $0.quote.changePercent > 0 }
+            .sorted { $0.quote.changePercent > $1.quote.changePercent }
+            .prefix(5))
+    }
+
+    private var losers: [Mover] {
+        Array(quoted.filter { $0.quote.changePercent < 0 }
+            .sorted { $0.quote.changePercent < $1.quote.changePercent }
+            .prefix(5))
+    }
+
+    private var largest: [StockHolding] {
+        Array(holdings.sorted { viewModel.holdingValueINR(for: $0) > viewModel.holdingValueINR(for: $1) }
+            .prefix(6))
+    }
+
+    var body: some View {
+        AdaptiveScrollView { isWide in
+            VStack(alignment: .leading, spacing: 20) {
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 220), spacing: 16)],
+                    spacing: 16
+                ) {
+                    ForEach(viewModel.indices) { index in
+                        NavigationLink {
+                            IndexDetailView(index: index)
+                        } label: {
+                            IndexTile(index: index, large: true)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                if !holdings.isEmpty {
+                    PortfolioTotalsView(
+                        totalINR: viewModel.totalValueINR(for: holdings),
+                        totalUSD: viewModel.totalValueUSD(for: holdings),
+                        dayChangeINR: viewModel.dayChangeINR(for: holdings),
+                        dayChangePercent: viewModel.dayChangePercent(for: holdings),
+                        exchangeRate: viewModel.exchangeRate,
+                        large: true
+                    )
+                    .cardBackground()
+
+                    AdaptiveColumns(isWide: isWide) {
+                        allocationCard
+                    } secondary: {
+                        moversCard(title: "Top Gainers Today", items: gainers)
+                        moversCard(title: "Top Losers Today", items: losers)
+                    }
+                }
+            }
+        }
+        .navigationTitle("Market Overview")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var allocationCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Largest Holdings")
+                .font(.headline)
+            ForEach(largest, id: \.id) { holding in
+                let weight = viewModel.weight(of: holding, in: holdings)
+                Button {
+                    onSelect(holding)
+                } label: {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text(holding.companyName)
+                                .lineLimit(1)
+                            Spacer()
+                            Text(CurrencyFormatter.formatUSDMillion(viewModel.holdingValueUSD(for: holding)))
+                                .foregroundStyle(.blue)
+                                .monospacedDigit()
+                            Text(String(format: "%.1f%%", weight))
+                                .foregroundStyle(.secondary)
+                                .monospacedDigit()
+                                .frame(width: 56, alignment: .trailing)
+                        }
+                        .font(.subheadline)
+                        ProgressView(value: min(max(weight, 0), 100), total: 100)
+                            .tint(.blue)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardBackground()
+    }
+
+    private func moversCard(title: String, items: [Mover]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.headline)
+            if items.isEmpty {
+                Text("None")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(items) { mover in
+                    Button {
+                        onSelect(mover.holding)
+                    } label: {
+                        HStack {
+                            Text(mover.holding.companyName)
+                                .lineLimit(1)
+                            Spacer()
+                            Text(CurrencyFormatter.formatPercent(mover.quote.changePercent))
+                                .fontWeight(.semibold)
+                                .foregroundStyle(mover.quote.isPositive ? .green : .red)
+                                .monospacedDigit()
+                        }
+                        .font(.subheadline)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardBackground()
     }
 }

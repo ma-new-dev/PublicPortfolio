@@ -33,6 +33,20 @@ enum CurrencyFormatter {
         return f
     }()
 
+    private static let indexFormatter: NumberFormatter = {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        f.maximumFractionDigits = 2
+        f.minimumFractionDigits = 2
+        f.locale = Locale(identifier: "en_IN")
+        return f
+    }()
+
+    /// Format an index level with Indian digit grouping (e.g. 81,234.56)
+    static func formatIndex(_ value: Double) -> String {
+        indexFormatter.string(from: NSNumber(value: value)) ?? String(format: "%.2f", value)
+    }
+
     /// Format as plain INR (e.g. ₹2,450.50) — used for per-share prices
     static func formatINR(_ value: Double) -> String {
         inrFormatter.string(from: NSNumber(value: value)) ?? "\u{20B9}\(value)"

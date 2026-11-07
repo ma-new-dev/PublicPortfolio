@@ -6,44 +6,54 @@ final class WatchListViewModel {
     var quotes: [String: StockQuote] = [:]
     var exchangeRate: Double = 0.0
     var isLoading = false
+    var errorMessage: String?
 
-    private let priceService = StockPriceService()
-    private let exchangeService = ExchangeRateService()
-    private var refreshTimer: Timer?
+    @ObservationIgnored private let priceService = StockPriceService()
+    @ObservationIgnored private let exchangeService = ExchangeRateService.shared
+    @ObservationIgnored private var refreshLoop: Task<Void, Never>?
+    @ObservationIgnored private var trackedItems: [WatchListItem] = []
 
     func refreshAll(items: [WatchListItem]) async {
+        trackedItems = items
+        guard !isLoading else { return }
         isLoading = true
+        defer { isLoading = false }
+
         let tickers = items.map(\.ticker)
 
-        async let fetchedQuotes = tickers.isEmpty ? [:] : priceService.fetchQuotes(for: tickers)
+        async let fetchedQuotes = priceService.fetchQuotes(for: tickers)
         async let fetchedRate = exchangeService.fetchINRToUSD()
 
         let newQuotes = await fetchedQuotes
-        if !newQuotes.isEmpty || tickers.isEmpty {
-            quotes = newQuotes
+        var merged = quotes.filter { tickers.contains($0.key) }
+        merged.merge(newQuotes) { _, new in new }
+        quotes = merged
+
+        if let rate = try? await fetchedRate {
+            exchangeRate = rate
         }
 
-        do {
-            exchangeRate = try await fetchedRate
-        } catch {
-            // keep previous rate if available
-        }
-
-        isLoading = false
+        let missing = tickers.filter { newQuotes[$0] == nil }.count
+        errorMessage = missing == 0
+            ? nil
+            : "Couldn't refresh \(missing) price\(missing == 1 ? "" : "s") — showing last known values."
     }
 
     func startAutoRefresh(items: [WatchListItem]) {
-        stopAutoRefresh()
-        let interval = MarketStatusService.nextRefreshInterval
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                await self?.refreshAll(items: items)
+        trackedItems = items
+        guard refreshLoop == nil else { return }
+        refreshLoop = Task { [weak self] in
+            while !Task.isCancelled {
+                let interval = MarketStatusService.nextRefreshInterval
+                try? await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
+                guard !Task.isCancelled, let self else { return }
+                await self.refreshAll(items: self.trackedItems)
             }
         }
     }
 
     func stopAutoRefresh() {
-        refreshTimer?.invalidate()
-        refreshTimer = nil
+        refreshLoop?.cancel()
+        refreshLoop = nil
     }
 }
