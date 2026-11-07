@@ -15,17 +15,6 @@ enum LayoutMetrics {
     /// Width of the summary side panel in wide list layouts.
     static let sidePanelWidth: CGFloat = 320
 
-    /// Minimum window size for the iPad-style split view (list + detail).
-    /// Decided from the real window size, not just the size class: the
-    /// foldable's inner display reports a *compact* size class even though it
-    /// is nearly iPad-sized, so a size-class check alone never enabled it.
-    static let splitMinWidth: CGFloat = 700
-    static let splitMinHeight: CGFloat = 500
-
-    static func useSplitLayout(size: CGSize, horizontalSizeClass: UserInterfaceSizeClass?) -> Bool {
-        if horizontalSizeClass == .regular { return true }
-        return size.width >= splitMinWidth && size.height >= splitMinHeight
-    }
 }
 
 /// A scroll view that tells its content whether it has room for two columns.

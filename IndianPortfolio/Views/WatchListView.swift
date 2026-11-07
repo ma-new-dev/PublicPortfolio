@@ -13,15 +13,33 @@ struct WatchListView: View {
     @State private var selectedItem: WatchListItem?
     @State private var isSyncingFromCloud = false
 
+    /// Plain split view; iOS decides one vs two columns (see PortfolioView).
     var body: some View {
-        GeometryReader { proxy in
-            if LayoutMetrics.useSplitLayout(size: proxy.size, horizontalSizeClass: horizontalSizeClass) {
-                splitLayout
-                    .environment(\.horizontalSizeClass, .regular)
-            } else {
-                stackLayout
+        NavigationSplitView {
+            mainContent
+                .navigationTitle("Watch List")
+                .toolbar { toolbarItems }
+                .navigationSplitViewColumnWidth(min: 300, ideal: 360, max: 440)
+        } detail: {
+            NavigationStack {
+                if let item = selectedItem {
+                    WatchListDetailView(
+                        item: item,
+                        quote: viewModel.quotes[item.ticker],
+                        exchangeRate: viewModel.exchangeRate,
+                        onDelete: { remove(item) }
+                    )
+                    .id(item.id)
+                } else {
+                    ContentUnavailableView(
+                        "Select a Stock",
+                        systemImage: "eye",
+                        description: Text("Choose a stock from your Watch List to view details.")
+                    )
+                }
             }
         }
+        .navigationSplitViewStyle(.balanced)
         .sheet(isPresented: $showingAddSheet) {
             AddWatchListItemView(existingTickers: Set(items.map(\.ticker)))
                 .presentationDetents([.large])
@@ -49,46 +67,6 @@ struct WatchListView: View {
         }
     }
 
-    // MARK: - Regular width
-
-    private var splitLayout: some View {
-        NavigationSplitView {
-            mainContent(selectable: true)
-                .navigationTitle("Watch List")
-                .toolbar { toolbarItems }
-                .navigationSplitViewColumnWidth(min: 300, ideal: 360, max: 440)
-        } detail: {
-            NavigationStack {
-                if let item = selectedItem {
-                    WatchListDetailView(
-                        item: item,
-                        quote: viewModel.quotes[item.ticker],
-                        exchangeRate: viewModel.exchangeRate,
-                        onDelete: { remove(item) }
-                    )
-                    .id(item.id)
-                } else {
-                    ContentUnavailableView(
-                        "Select a Stock",
-                        systemImage: "eye",
-                        description: Text("Choose a stock from your Watch List to view details.")
-                    )
-                }
-            }
-        }
-        .navigationSplitViewStyle(.balanced)
-    }
-
-    // MARK: - Compact width
-
-    private var stackLayout: some View {
-        NavigationStack {
-            mainContent(selectable: false)
-                .navigationTitle("Watch List")
-                .toolbar { toolbarItems }
-        }
-    }
-
     // MARK: - CloudKit sync
 
     private func handleCloudKitEvent(_ notification: Notification) {
@@ -110,12 +88,12 @@ struct WatchListView: View {
 
     // MARK: - Main Content
 
-    private func mainContent(selectable: Bool) -> some View {
+    private var mainContent: some View {
         Group {
             if items.isEmpty {
                 emptyState
             } else {
-                itemsList(selectable: selectable)
+                itemsList
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
@@ -181,41 +159,15 @@ struct WatchListView: View {
 
     // MARK: - Items List
 
-    private func itemsList(selectable: Bool) -> some View {
-        List {
+    private var itemsList: some View {
+        List(selection: $selectedItem) {
             Section("Watching (\(items.count))") {
                 ForEach(items) { item in
-                    Group {
-                        if selectable {
-                            Button {
-                                selectedItem = item
-                            } label: {
-                                WatchListRowView(
-                                    item: item,
-                                    quote: viewModel.quotes[item.ticker]
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            .listRowBackground(
-                                selectedItem?.id == item.id
-                                    ? Color.blue.opacity(0.12)
-                                    : Color(.secondarySystemGroupedBackground)
-                            )
-                        } else {
-                            NavigationLink {
-                                WatchListDetailView(
-                                    item: item,
-                                    quote: viewModel.quotes[item.ticker],
-                                    exchangeRate: viewModel.exchangeRate
-                                )
-                            } label: {
-                                WatchListRowView(
-                                    item: item,
-                                    quote: viewModel.quotes[item.ticker]
-                                )
-                            }
-                        }
-                    }
+                    WatchListRowView(
+                        item: item,
+                        quote: viewModel.quotes[item.ticker]
+                    )
+                    .tag(item)
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button(role: .destructive) {
                             remove(item)
