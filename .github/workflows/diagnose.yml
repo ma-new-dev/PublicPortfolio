@@ -34,20 +34,18 @@ jobs:
 
       - name: Probe Yahoo market-cap sources
         run: |
-          UA_BROWSER='Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'
+          set +e
+          UA='Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'
           S=PAYTM.NS
-          probe() { echo "== $1"; curl -s -o /tmp/out -w "HTTP %{http_code}\n" -A "$2" ${3:+-b /tmp/jar -c /tmp/jar} "$4"; head -c 400 /tmp/out; echo; }
-          probe "v7 quote, no crumb, UA=Mozilla/5.0" "Mozilla/5.0" "" "https://query1.finance.yahoo.com/v7/finance/quote?symbols=$S&fields=marketCap"
-          probe "chart 1d/1m meta" "Mozilla/5.0" "" "https://query1.finance.yahoo.com/v8/finance/chart/$S?range=1d&interval=1m"
-          echo "== crumb flow (browser UA, cookie jar)"
-          curl -s -o /dev/null -w "fc.yahoo.com HTTP %{http_code}\n" -A "$UA_BROWSER" -c /tmp/jar -b /tmp/jar https://fc.yahoo.com
-          CRUMB=$(curl -s -A "$UA_BROWSER" -c /tmp/jar -b /tmp/jar https://query2.finance.yahoo.com/v1/test/getcrumb)
-          echo "crumb length: ${#CRUMB} (starts: ${CRUMB:0:3})"
-          probe "v7 quote WITH crumb" "$UA_BROWSER" jar "https://query2.finance.yahoo.com/v7/finance/quote?symbols=$S&fields=marketCap&crumb=$CRUMB"
-          probe "v10 quoteSummary price WITH crumb" "$UA_BROWSER" jar "https://query2.finance.yahoo.com/v10/finance/quoteSummary/$S?modules=price&crumb=$CRUMB"
-          echo "== crumb flow with default (non-browser) UA"
-          rm -f /tmp/jar
-          curl -s -o /dev/null -w "fc.yahoo.com HTTP %{http_code}\n" -c /tmp/jar -b /tmp/jar https://fc.yahoo.com
-          curl -s -w "\ngetcrumb HTTP %{http_code}\n" -c /tmp/jar -b /tmp/jar https://query2.finance.yahoo.com/v1/test/getcrumb | tail -c 200
-          probe "timeseries shares outstanding, no crumb" "$UA_BROWSER" "" "https://query1.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries/$S?type=annualOrdinarySharesNumber,quarterlyOrdinarySharesNumber&period1=1600000000&period2=1900000000"
-          probe "timeseries marketCap (trailingMarketCap), no crumb" "$UA_BROWSER" "" "https://query1.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries/$S?type=trailingMarketCap&period1=1700000000&period2=1900000000"
+          probe() { echo "== $1"; curl -s -o /tmp/out -w "HTTP %{http_code}\n" -A "$UA" -b /tmp/jar -c /tmp/jar "$2"; head -c 600 /tmp/out; echo; echo; }
+          probe "timeseries shares outstanding (no crumb)" "https://query1.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries/$S?type=quarterlyOrdinarySharesNumber,annualOrdinarySharesNumber&period1=1600000000&period2=1900000000"
+          probe "timeseries trailingMarketCap (no crumb)" "https://query1.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries/$S?type=trailingMarketCap&period1=1700000000&period2=1900000000"
+          probe "timeseries query2 shares (no crumb)" "https://query2.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries/$S?type=quarterlyOrdinarySharesNumber&period1=1600000000&period2=1900000000"
+          curl -s -o /dev/null -w "fc.yahoo.com HTTP %{http_code}\n" -A "$UA" -c /tmp/jar -b /tmp/jar https://fc.yahoo.com
+          echo "cookies set: $(grep -c yahoo /tmp/jar 2>/dev/null)"
+          sleep 3
+          CRUMB=$(curl -s -A "$UA" -c /tmp/jar -b /tmp/jar https://query1.finance.yahoo.com/v1/test/getcrumb)
+          echo "crumb: length ${#CRUMB}, starts '${CRUMB:0:4}'"
+          ENC=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1]))" "$CRUMB")
+          probe "v7 quote with crumb" "https://query1.finance.yahoo.com/v7/finance/quote?symbols=$S&fields=marketCap&crumb=$ENC"
+          exit 0
