@@ -35,10 +35,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Select latest stable Xcode
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: latest-stable
+      - name: Select newest Xcode
+        run: |
+          newest="$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)"
+          [ -n "$newest" ] && sudo xcode-select -s "$newest"
+          xcodebuild -version
+          ver="$(xcodebuild -version | awk '/^Xcode/{print $2}')"
+          # iPhone Duo shows apps built with an SDK older than Xcode 27.1 in
+          # compatibility mode (a phone-sized window) on its inner display.
+          if [ "$(printf '%s\n27.1\n' "$ver" | sort -V | head -1)" != "27.1" ]; then
+            echo "::warning::Building with Xcode $ver. iPhone Duo needs Xcode 27.1+ for full-screen on the inner display; this build will run in compatibility mode there. Archive from a Mac with Xcode 27.1+ for Duo, or wait for GitHub's runner image to add it."
+          fi
 
       - name: Check secrets are configured
         env:

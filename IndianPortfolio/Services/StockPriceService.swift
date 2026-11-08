@@ -47,8 +47,8 @@ struct StockPriceService {
 
     // MARK: - Market cap
 
-    func fetchMarketCap(for ticker: String) async -> Double? {
-        await MarketDataClient.fetchMarketCap(ticker)
+    func fetchMarketCap(for ticker: String, price: Double? = nil) async -> Double? {
+        await MarketDataClient.fetchMarketCap(ticker, price: price)
     }
 
     // MARK: - Symbol search

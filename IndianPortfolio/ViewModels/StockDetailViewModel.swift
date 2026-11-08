@@ -76,7 +76,7 @@ final class StockDetailViewModel {
             if let cap = liveQuote?.marketCap, cap > 0 {
                 marketCap = cap
             } else {
-                marketCap = await priceService.fetchMarketCap(for: ticker)
+                marketCap = await priceService.fetchMarketCap(for: ticker, price: liveQuote?.currentPrice)
             }
         }
 

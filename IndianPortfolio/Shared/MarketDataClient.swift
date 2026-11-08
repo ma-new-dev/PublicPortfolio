@@ -69,7 +69,7 @@ enum MarketDataClient {
     static let indiaTimeZone = TimeZone(identifier: "Asia/Kolkata") ?? .current
 
     private static let hosts = ["query1.finance.yahoo.com", "query2.finance.yahoo.com"]
-    private static let userAgent =
+    static let userAgent =
         "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1"
 
     static let session: URLSession = {
@@ -80,6 +80,10 @@ enum MarketDataClient {
         config.requestCachePolicy = .reloadIgnoringLocalCacheData
         config.urlCache = nil
         config.waitsForConnectivity = false
+        // Yahoo's crumb flow relies on a cookie set by fc.yahoo.com.
+        config.httpCookieStorage = .shared
+        config.httpCookieAcceptPolicy = .always
+        config.httpShouldSetCookies = true
         return URLSession(configuration: config)
     }()
 
@@ -312,37 +316,101 @@ actor YahooCrumbProvider {
     static let shared = YahooCrumbProvider()
     private var crumb: String?
 
+    private func browserRequest(_ url: URL) -> URLRequest {
+        var request = URLRequest(url: url)
+        // Yahoo refuses the cookie/crumb exchange for non-browser user agents.
+        request.setValue(MarketDataClient.userAgent, forHTTPHeaderField: "User-Agent")
+        request.setValue("text/html,application/json,*/*", forHTTPHeaderField: "Accept")
+        return request
+    }
+
     func currentCrumb() async -> String? {
         if let crumb { return crumb }
         let session = MarketDataClient.session
-        // 1. Prime cookies (response is usually a 404, that's expected).
+        // 1. Prime the session cookie (fc.yahoo.com answers 404; the cookie is what matters).
         if let primeURL = URL(string: "https://fc.yahoo.com") {
-            _ = try? await session.data(from: primeURL)
+            _ = try? await session.data(for: browserRequest(primeURL))
         }
-        // 2. Exchange cookies for a crumb.
-        guard let crumbURL = URL(string: "https://query2.finance.yahoo.com/v1/test/getcrumb"),
-              let (data, response) = try? await session.data(from: crumbURL),
-              (response as? HTTPURLResponse)?.statusCode == 200,
-              let value = String(data: data, encoding: .utf8)?
-                .trimmingCharacters(in: .whitespacesAndNewlines),
-              !value.isEmpty, value.count < 64, !value.contains("<")
-        else { return nil }
-        crumb = value
-        return value
+        // 2. Exchange the cookie for a crumb (try both hosts).
+        for host in ["query1.finance.yahoo.com", "query2.finance.yahoo.com"] {
+            guard let crumbURL = URL(string: "https://\(host)/v1/test/getcrumb"),
+                  let (data, response) = try? await session.data(for: browserRequest(crumbURL)),
+                  (response as? HTTPURLResponse)?.statusCode == 200,
+                  let value = String(data: data, encoding: .utf8)?
+                    .trimmingCharacters(in: .whitespacesAndNewlines),
+                  !value.isEmpty, value.count < 64,
+                  !value.contains("<"), !value.contains(" ")   // e.g. "Too Many Requests"
+            else { continue }
+            crumb = value
+            return value
+        }
+        return nil
     }
 
     func invalidate() { crumb = nil }
 }
 
-extension MarketDataClient {
-    /// Market cap from Yahoo's v7 quote endpoint.
-    ///
-    /// 1. Plain request (no crumb), exactly as the app did before v1.1 — this is
-    ///    what worked on device.
-    /// 2. If Yahoo demands a crumb (401/403/empty), fetch one and retry.
-    static func fetchMarketCap(_ symbol: String) async -> Double? {
-        guard isValidSymbol(symbol) else { return nil }
+// MARK: - Market cap
 
+/// Shares outstanding per symbol, saved once market cap has been obtained.
+/// Market cap is then computed locally as shares × live price, so it keeps
+/// working even when Yahoo throttles or blocks its protected endpoints.
+enum SharesOutstandingCache {
+    private struct Entry: Codable { let shares: Double; let savedAt: Date }
+    private static func key(_ symbol: String) -> String { "sharesOutstanding.\(symbol)" }
+    static let freshFor: TimeInterval = 7 * 24 * 3600
+
+    static func get(_ symbol: String) -> (shares: Double, isFresh: Bool)? {
+        guard let data = UserDefaults.standard.data(forKey: key(symbol)),
+              let entry = try? JSONDecoder().decode(Entry.self, from: data),
+              entry.shares > 0 else { return nil }
+        return (entry.shares, Date().timeIntervalSince(entry.savedAt) < freshFor)
+    }
+
+    static func set(_ symbol: String, shares: Double) {
+        guard shares > 0, shares.isFinite,
+              let data = try? JSONEncoder().encode(Entry(shares: shares, savedAt: Date())) else { return }
+        UserDefaults.standard.set(data, forKey: key(symbol))
+    }
+}
+
+extension MarketDataClient {
+    /// Market cap for `symbol`. `price` is the current share price, used to turn
+    /// a saved share count into a live market cap.
+    ///
+    /// Order: fresh saved share count → v7 quote with crumb → v7 without crumb
+    /// → chart metadata → fundamentals share count → stale saved share count.
+    static func fetchMarketCap(_ symbol: String, price: Double? = nil) async -> Double? {
+        guard isValidSymbol(symbol) else { return nil }
+        let cached = SharesOutstandingCache.get(symbol)
+        if let cached, cached.isFresh, let price, price > 0 {
+            return cached.shares * price
+        }
+
+        if let cap = await fetchMarketCapFromNetwork(symbol) {
+            if let price, price > 0 { SharesOutstandingCache.set(symbol, shares: cap / price) }
+            return cap
+        }
+        if let price, price > 0, let shares = await fetchSharesOutstanding(symbol) {
+            SharesOutstandingCache.set(symbol, shares: shares)
+            return shares * price
+        }
+        if let cached, let price, price > 0 {
+            return cached.shares * price
+        }
+        return nil
+    }
+
+    private static func fetchMarketCapFromNetwork(_ symbol: String) async -> Double? {
+        if let crumb = await YahooCrumbProvider.shared.currentCrumb() {
+            if let cap = await requestMarketCap(symbol, host: "query1.finance.yahoo.com", crumb: crumb) {
+                return cap
+            }
+            if let cap = await requestMarketCap(symbol, host: "query2.finance.yahoo.com", crumb: crumb) {
+                return cap
+            }
+            await YahooCrumbProvider.shared.invalidate()
+        }
         if let cap = await requestMarketCap(symbol, host: "query1.finance.yahoo.com", crumb: nil) {
             return cap
         }
@@ -353,12 +421,6 @@ extension MarketDataClient {
            let meta = result["meta"] as? [String: Any],
            let cap = number(meta["marketCap"]), cap > 0 {
             return cap
-        }
-        if let crumb = await YahooCrumbProvider.shared.currentCrumb() {
-            if let cap = await requestMarketCap(symbol, host: "query2.finance.yahoo.com", crumb: crumb) {
-                return cap
-            }
-            await YahooCrumbProvider.shared.invalidate()
         }
         return nil
     }
@@ -377,8 +439,7 @@ extension MarketDataClient {
         guard let url = components.url else { return nil }
 
         var request = URLRequest(url: url)
-        // Same minimal UA the pre-1.1 app used successfully for this endpoint.
-        request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
 
         guard let (data, response) = try? await session.data(for: request),
               let http = response as? HTTPURLResponse,
@@ -390,5 +451,40 @@ extension MarketDataClient {
               cap > 0
         else { return nil }
         return cap
+    }
+
+    /// Latest reported share count from Yahoo's fundamentals time series.
+    private static func fetchSharesOutstanding(_ symbol: String) async -> Double? {
+        guard let encoded = symbol.addingPercentEncoding(withAllowedCharacters: pathSafeCharacters) else { return nil }
+        let types = ["quarterlyOrdinarySharesNumber", "annualOrdinarySharesNumber"]
+        let now = Int(Date().timeIntervalSince1970)
+        guard let json = try? await fetchJSON({ host in
+            var c = URLComponents()
+            c.scheme = "https"
+            c.host = host
+            c.percentEncodedPath = "/ws/fundamentals-timeseries/v1/finance/timeseries/\(encoded)"
+            c.queryItems = [
+                URLQueryItem(name: "type", value: types.joined(separator: ",")),
+                URLQueryItem(name: "period1", value: String(now - 3 * 365 * 24 * 3600)),
+                URLQueryItem(name: "period2", value: String(now)),
+            ]
+            return c.url
+        }),
+              let timeseries = json["timeseries"] as? [String: Any],
+              let results = timeseries["result"] as? [[String: Any]]
+        else { return nil }
+
+        for type in types {
+            for result in results {
+                guard let series = result[type] as? [Any] else { continue }
+                let values = series.compactMap { entry -> Double? in
+                    guard let dict = entry as? [String: Any],
+                          let reported = dict["reportedValue"] as? [String: Any] else { return nil }
+                    return number(reported["raw"])
+                }
+                if let latest = values.last, latest > 0 { return latest }
+            }
+        }
+        return nil
     }
 }
